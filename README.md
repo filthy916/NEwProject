@@ -179,6 +179,24 @@ source.
    python server.py
    ```
 
+### Deploying to Render
+
+Render was trying to run `npm run start`, which fails because this repository is
+a Python service and does not include a `package.json`. This repository now
+includes both a `render.yaml` blueprint and a `Procfile` that point Render at
+`python server.py`.
+
+If you create a new Render service from this repo, use the blueprint in
+`render.yaml` or make sure the service is configured with:
+
+```text
+Build Command: pip install -r requirements.txt
+Start Command: python server.py
+```
+
+Also set `GROQ_API_KEY` in the Render dashboard environment variables. Render
+will provide `PORT`; `server.py` now reads it automatically.
+
 ### API reference
 
 #### `POST /api/chat`
