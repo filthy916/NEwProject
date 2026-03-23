@@ -149,6 +149,77 @@ python main.py
 
 ---
 
+## Groq backend server
+
+`server.py` is a Flask backend that proxies chat requests to the
+[Groq API](https://console.groq.com).  **All Groq API calls happen
+server-side** — the API key is never sent to the client or hardcoded in the
+source.
+
+### Setup
+
+1. **Install dependencies**
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. **Create your `.env` file** (it is listed in `.gitignore` and never committed)
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   Open `.env` and replace `your_groq_api_key_here` with your actual key from
+   [console.groq.com](https://console.groq.com).
+
+3. **Start the server**
+
+   ```bash
+   python server.py
+   ```
+
+### API reference
+
+#### `POST /api/chat`
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `message` | string | ✓ | The user's message |
+| `model` | string | | Groq model name (default: `llama3-8b-8192`) |
+| `system` | string | | Optional system prompt |
+
+**Example request**
+
+```bash
+curl -X POST http://localhost:5000/api/chat \
+     -H 'Content-Type: application/json' \
+     -d '{"message": "What is the capital of France?"}'
+```
+
+**Example response**
+
+```json
+{
+  "reply": "The capital of France is Paris.",
+  "model": "llama3-8b-8192"
+}
+```
+
+#### `GET /health`
+
+Returns `{"status": "ok"}` — useful for uptime checks.
+
+### Environment variables
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `GROQ_API_KEY` | ✓ | — | Your Groq API key |
+| `GROQ_MODEL` | | `llama3-8b-8192` | Default model |
+| `FLASK_DEBUG` | | `0` | Set to `1` for dev mode |
+
+---
+
 ## Running tests
 
 ```bash
