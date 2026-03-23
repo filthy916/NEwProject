@@ -25,7 +25,7 @@ class SymbolicEncoder:
     """Convert intent + token sequence into a :class:`SymbolicExpression`."""
 
     # Words that indicate negation even without a "NEGATE" intent
-    _NEGATION_WORDS = frozenset({"not", "never", "no", "neither", "nor"})
+    _NEGATION_WORDS = frozenset({"not", "never", "no", "neither", "nor", "cannot"})
 
     # Action verbs commonly found in COMMAND utterances
     _ACTION_VERBS = frozenset({
@@ -34,6 +34,13 @@ class SymbolicEncoder:
         "compute", "calculate", "convert", "show", "turn", "execute",
         "send", "move", "copy", "rename", "update", "download",
     })
+    _FILLER_WORDS = frozenset({"please", "kindly", "hey", "yo", "um", "uh"})
+    _QUESTION_WORDS = frozenset({"what", "who", "where", "when", "why", "how", "which"})
+    _COMPARE_WORDS = frozenset({
+        "compare", "difference", "versus", "vs", "better", "worse",
+        "similar", "unlike", "same",
+    })
+    _ENUMERATION_WORDS = frozenset({"list", "name", "enumerate", "show"})
 
     def encode(
         self,
@@ -109,10 +116,42 @@ class SymbolicEncoder:
                     t for t in tokens[vi + 1:]
                     if t not in self._NEGATION_WORDS
                     and t not in ENTITY_PATTERNS.get("AGENT", [])
+                    and t not in self._FILLER_WORDS
                 ]
                 if obj_candidates:
                     return f"{verb}_{obj_candidates[0]}"
                 return verb
+
+        if intent == "COMPARE":
+            for t in tokens:
+                if t in self._COMPARE_WORDS or t in self._FILLER_WORDS:
+                    continue
+                if t in ENTITY_PATTERNS.get("AGENT", []) or t in STOP_WORDS:
+                    continue
+                return t
+
+        if intent == "QUERY":
+            entity_tokens = {
+                token_value
+                for values in entities.values()
+                for token_value in values
+            }
+            for t in tokens:
+                if t in self._QUESTION_WORDS or t in self._FILLER_WORDS:
+                    continue
+                if t in ENTITY_PATTERNS.get("AGENT", []) or t in STOP_WORDS:
+                    continue
+                if t in entity_tokens:
+                    continue
+                return t
+
+        if intent == "ENUMERATE":
+            for t in tokens:
+                if t in self._ENUMERATION_WORDS or t in self._FILLER_WORDS:
+                    continue
+                if t in ENTITY_PATTERNS.get("AGENT", []) or t in STOP_WORDS:
+                    continue
+                return t
 
         # For conditionals pull the antecedent (after "if")
         if intent == "CONDITIONAL":
@@ -136,6 +175,7 @@ class SymbolicEncoder:
                 t not in self._NEGATION_WORDS
                 and t not in agent_tokens
                 and t not in STOP_WORDS
+                and t not in self._FILLER_WORDS
                 and not t.isdigit()
             ):
                 return t
@@ -179,6 +219,7 @@ class SymbolicEncoder:
                 t for t in tokens
                 if t not in ENTITY_PATTERNS.get("AGENT", [])
                 and t not in STOP_WORDS
+                and t not in self._FILLER_WORDS
                 and t not in {"compare", "difference", "versus", "vs",
                                "better", "worse", "similar", "unlike",
                                "same"}

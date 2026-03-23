@@ -49,12 +49,13 @@ def _build_seed_corpus() -> Tuple[List[str], List[str]]:
 
     texts: List[str] = []
     labels: List[str] = []
+    rng = random.Random(42)
 
     for intent, seeds in INTENT_SEEDS.items():
         for seed in seeds:
             texts.append(seed)
             labels.append(intent)
-            for template in random.sample(templates, k=min(5, len(templates))):
+            for template in rng.sample(templates, k=min(5, len(templates))):
                 texts.append(template.format(phrase=seed))
                 labels.append(intent)
 
@@ -82,6 +83,29 @@ class IntentClassifier:
         self._label_encoder = LabelEncoder()
         self._pipeline: Pipeline | None = None
         self._trained: bool = False
+        self._heuristic_confidence = 0.78
+        self._heuristic_min_model_confidence = 0.62
+        self._heuristic_max_len = 6
+
+        self._query_cues = {
+            "what", "who", "where", "when", "why", "how", "which",
+            "explain", "describe", "tell", "question",
+        }
+        self._command_cues = {
+            "turn", "open", "close", "run", "start", "stop", "execute",
+            "create", "delete", "add", "remove", "set", "enable",
+            "disable", "show", "find", "search", "compute", "calculate",
+            "convert", "send", "move", "copy", "rename", "update",
+            "download",
+        }
+        self._compare_cues = {
+            "compare", "vs", "versus", "difference", "better", "worse",
+            "similar", "unlike",
+        }
+        self._define_cues = {"define", "definition", "meaning"}
+        self._enumerate_cues = {"list", "enumerate", "name", "categories", "types"}
+        self._conditional_cues = {"if", "unless", "provided", "assuming", "whenever"}
+        self._negate_cues = {"not", "never", "no", "cannot", "neither", "nor", "deny", "refute"}
 
     # ------------------------------------------------------------------
     # Training
@@ -171,7 +195,22 @@ class IntentClassifier:
         proba = self._pipeline.predict_proba([text])[0]
         classes = self._pipeline.classes_
         idx = int(np.argmax(proba))
-        return str(classes[idx]), float(proba[idx])
+        predicted_intent = str(classes[idx])
+        predicted_confidence = float(proba[idx])
+        heuristic_intent, heuristic_conf = self._heuristic_predict(text)
+        is_mismatch = heuristic_intent is not None and predicted_intent != heuristic_intent
+        is_short_query = len(text.split()) <= self._heuristic_max_len
+
+        should_override = (
+            is_mismatch
+            and (
+                predicted_confidence < self._heuristic_min_model_confidence
+                or is_short_query
+            )
+        )
+        if should_override:
+            return heuristic_intent, max(predicted_confidence, heuristic_conf)
+        return predicted_intent, predicted_confidence
 
     def predict_batch(self, texts: List[str]) -> List[Tuple[str, float]]:
         """Batch version of :meth:`predict`."""
@@ -181,10 +220,60 @@ class IntentClassifier:
         proba_matrix = self._pipeline.predict_proba(texts)
         classes = self._pipeline.classes_
         results = []
-        for proba in proba_matrix:
+        for text, proba in zip(texts, proba_matrix):
             idx = int(np.argmax(proba))
-            results.append((str(classes[idx]), float(proba[idx])))
+            predicted_intent = str(classes[idx])
+            predicted_confidence = float(proba[idx])
+            heuristic_intent, heuristic_conf = self._heuristic_predict(text)
+            is_mismatch = (
+                heuristic_intent is not None and predicted_intent != heuristic_intent
+            )
+            is_short_query = len(text.split()) <= self._heuristic_max_len
+            should_override = (
+                is_mismatch
+                and (
+                    predicted_confidence < self._heuristic_min_model_confidence
+                    or is_short_query
+                )
+            )
+            if should_override:
+                results.append(
+                    (heuristic_intent, max(predicted_confidence, heuristic_conf))
+                )
+            else:
+                results.append((predicted_intent, predicted_confidence))
         return results
+
+    def _heuristic_predict(self, text: str) -> Tuple[str | None, float]:
+        """Return a rule-based intent for noisy short text when obvious."""
+        tokens = [t for t in text.split() if t]
+        if not tokens:
+            return None, 0.0
+
+        token_set = set(tokens)
+
+        if token_set & self._conditional_cues:
+            return "CONDITIONAL", self._heuristic_confidence
+
+        if token_set & self._compare_cues:
+            return "COMPARE", self._heuristic_confidence
+
+        if token_set & self._define_cues:
+            return "DEFINE", self._heuristic_confidence
+
+        if token_set & self._enumerate_cues:
+            return "ENUMERATE", self._heuristic_confidence
+
+        if token_set & self._negate_cues:
+            return "NEGATE", self._heuristic_confidence
+
+        if tokens[0] in self._command_cues or (token_set & self._command_cues):
+            return "COMMAND", self._heuristic_confidence
+
+        if tokens[0] in self._query_cues or (token_set & self._query_cues):
+            return "QUERY", self._heuristic_confidence
+
+        return None, 0.0
 
     @property
     def is_trained(self) -> bool:

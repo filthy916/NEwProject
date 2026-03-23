@@ -30,6 +30,15 @@ class TestPreprocessorClean:
     def test_empty_string(self):
         assert self.pp.clean("") == ""
 
+    def test_contraction_priority_wont(self):
+        assert self.pp.clean("won't run") == "will not run"
+
+    def test_contraction_priority_cant(self):
+        assert self.pp.clean("can't find it") == "cannot find it"
+
+    def test_slang_normalization(self):
+        assert self.pp.clean("wats weather tdy") == "what is weather today"
+
 
 class TestPreprocessorTokenize:
     def setup_method(self):
@@ -54,6 +63,10 @@ class TestPreprocessorTokenize:
     def test_raw_keeps_stopwords(self):
         tokens = self.pp.tokenize_raw("what is the weather today")
         assert "the" in tokens
+
+    def test_negation_words_preserved(self):
+        tokens = self.pp.tokenize("no answer")
+        assert "no" in tokens
 
 
 class TestPreprocessorNoStopwords:

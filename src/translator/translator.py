@@ -110,6 +110,10 @@ class HumanToAITranslator:
         """
         return [self.translate(t) for t in texts]
 
+    def translate_to_ai_language(self, text: str) -> str:
+        """Translate raw human input into AI-oriented instruction language."""
+        return self.translate(text).to_ai_language()
+
     def train(
         self,
         texts: List[str],

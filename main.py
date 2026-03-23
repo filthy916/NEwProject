@@ -33,6 +33,8 @@ def _format_result(expr, fmt: str) -> str:
         return expr.to_json()
     if fmt == "dict":
         return str(expr.to_dict())
+    if fmt == "ai":
+        return expr.to_ai_language()
     return str(expr)
 
 
@@ -70,7 +72,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--format",
-        choices=["symbolic", "dict", "json"],
+        choices=["symbolic", "dict", "json", "ai"],
         default="symbolic",
         dest="fmt",
         help="Output format (default: symbolic).",

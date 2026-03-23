@@ -84,6 +84,11 @@ class TestTranslatorOutput:
         args = expr.arguments
         assert args.get("time") == "today"
 
+    def test_translate_to_ai_language(self, translator):
+        ai_text = translator.translate_to_ai_language("Turn on the lights")
+        assert "TASK_INTENT: COMMAND" in ai_text
+        assert "INSTRUCTION:" in ai_text
+
 
 class TestTranslatorBatch:
     def test_batch_returns_list(self, translator):
@@ -116,3 +121,32 @@ class TestTranslatorFineTuning:
         t = HumanToAITranslator(auto_train=False)
         result = t.train(["what is this"], ["QUERY"])
         assert result is t
+
+
+class TestTranslatorNoisyQueries:
+    def test_slang_query_time_entity(self, translator):
+        expr = translator.translate("wats weather tdy")
+        assert expr.intent == "QUERY"
+        assert expr.arguments.get("time") == "today"
+        assert expr.subject == "weather"
+
+    def test_short_compare_shorthand(self, translator):
+        expr = translator.translate("cmp python vs js")
+        assert expr.intent == "COMPARE"
+        assert expr.arguments.get("lhs") == "python"
+        assert expr.arguments.get("rhs") == "js"
+
+    def test_polite_broken_enumerate(self, translator):
+        expr = translator.translate("pls list files")
+        assert expr.intent == "ENUMERATE"
+        assert expr.subject == "files"
+
+    def test_short_location_abbreviation(self, translator):
+        expr = translator.translate("where hosp?")
+        assert expr.intent == "QUERY"
+        assert expr.subject == "hospital"
+
+    def test_negation_contraction_preserved(self, translator):
+        expr = translator.translate("can't find file")
+        assert expr.intent == "NEGATE"
+        assert expr.arguments.get("negated") is True

@@ -72,6 +72,25 @@ class TestSymbolicExpressionJson:
         assert "What is the weather today?" in expr.to_json()
 
 
+class TestSymbolicExpressionAiLanguage:
+    def test_ai_language_contains_core_sections(self):
+        expr = make_expr()
+        text = expr.to_ai_language()
+        assert "TASK_INTENT: QUERY" in text
+        assert "PRIMARY_SUBJECT: weather" in text
+        assert "CONTEXT:" in text
+        assert "INSTRUCTION:" in text
+
+    def test_compare_instruction_uses_lhs_rhs(self):
+        expr = make_expr(
+            intent="COMPARE",
+            subject="python",
+            arguments={"lhs": "python", "rhs": "javascript"},
+        )
+        text = expr.to_ai_language().lower()
+        assert "compare 'python' and 'javascript'" in text
+
+
 class TestSymbolicExpressionEquality:
     def test_equal_expressions(self):
         a = make_expr()

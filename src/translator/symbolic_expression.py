@@ -88,6 +88,87 @@ class SymbolicExpression:
             return f"{self.predicate}({self.subject})"
         return f"{self.predicate}()"
 
+    def to_ai_language(self) -> str:
+        """Return an AI-oriented instruction block derived from this expression.
+
+        The output is deterministic and structured so it can be passed directly
+        to an LLM as a rewritten, intent-explicit version of the human input.
+        """
+        normalized_subject = self.subject.replace("_", " ").strip() or "unknown"
+
+        # Deterministic argument ordering keeps output stable across runs.
+        context_lines = []
+        for key in sorted(self.arguments):
+            value = self.arguments[key]
+            if value not in (None, "", []):
+                context_lines.append(f"- {key}: {value}")
+        context_text = "\n".join(context_lines) if context_lines else "- none"
+
+        instruction = self._build_ai_instruction(normalized_subject)
+
+        return (
+            f"TASK_INTENT: {self.intent}\n"
+            f"PRIMARY_SUBJECT: {normalized_subject}\n"
+            f"CONFIDENCE: {self.confidence:.4f}\n"
+            f"CONTEXT:\n{context_text}\n"
+            f"INSTRUCTION:\n{instruction}\n"
+            f"ORIGINAL_INPUT: {self.raw_text}"
+        )
+
+    def _build_ai_instruction(self, subject: str) -> str:
+        """Build an intent-aware instruction sentence for LLM consumption."""
+        if self.intent == "QUERY":
+            return (
+                f"Answer the user's question about '{subject}' with factual, "
+                "concise, and directly useful information."
+            )
+        if self.intent == "COMMAND":
+            return (
+                f"Execute or outline the action '{subject}'. If critical "
+                "details are missing, ask one focused follow-up question."
+            )
+        if self.intent == "ASSERT":
+            return (
+                f"Evaluate the statement about '{subject}' and respond with a "
+                "clear confirmation or correction."
+            )
+        if self.intent == "CONDITIONAL":
+            return (
+                f"Reason about the condition involving '{subject}' and explain "
+                "the likely outcome in a clear cause-and-effect form."
+            )
+        if self.intent == "NEGATE":
+            return (
+                f"Respect the negated request about '{subject}' and avoid "
+                "contradicting the user's stated constraint."
+            )
+        if self.intent == "COMPARE":
+            lhs = self.arguments.get("lhs")
+            rhs = self.arguments.get("rhs")
+            if lhs and rhs:
+                return (
+                    f"Compare '{lhs}' and '{rhs}' using concrete tradeoffs and "
+                    "end with a practical recommendation."
+                )
+            return (
+                f"Provide a comparison centered on '{subject}' with concrete "
+                "tradeoffs and a practical recommendation."
+            )
+        if self.intent == "DEFINE":
+            return (
+                f"Provide a simple, accurate definition of '{subject}', then "
+                "add one quick real-world example."
+            )
+        if self.intent == "ENUMERATE":
+            return (
+                f"Return a concise list of items related to '{subject}' in a "
+                "clean, readable format."
+            )
+        return (
+            f"Interpret and respond to the request about '{subject}' with a "
+            "direct and helpful answer."
+        )
+
     # ------------------------------------------------------------------
     # Magic methods
     # ------------------------------------------------------------------

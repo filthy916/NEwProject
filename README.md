@@ -179,12 +179,16 @@ source.
    python server.py
    ```
 
+   Or via npm:
+
+   ```bash
+   npm run start
+   ```
+
 ### Deploying to Render
 
-Render was trying to run `npm run start`, which fails because this repository is
-a Python service and does not include a `package.json`. This repository now
-includes both a `render.yaml` blueprint and a `Procfile` that point Render at
-`python server.py`.
+This repository includes a `package.json` launcher (`npm run start`) plus
+`render.yaml` and `Procfile` entries for Python hosting.
 
 If you create a new Render service from this repo, use the blueprint in
 `render.yaml` or make sure the service is configured with:
@@ -199,6 +203,11 @@ will provide `PORT`; `server.py` now reads it automatically.
 
 ### API reference
 
+All `/api/*` endpoints require an API key sent in one of these headers:
+
+- `X-API-Key: <BACKEND_API_KEY>`
+- `Authorization: Bearer <BACKEND_API_KEY>`
+
 #### `POST /api/chat`
 
 | Field | Type | Required | Description |
@@ -206,12 +215,15 @@ will provide `PORT`; `server.py` now reads it automatically.
 | `message` | string | ✓ | The user's message |
 | `model` | string | | Groq model name (default: `llama3-8b-8192`) |
 | `system` | string | | Optional system prompt |
+| `resonate` | boolean | | Rewrite message to AI-oriented format (default: `true`) |
+| `include_translation` | boolean | | Include translated intermediate payload |
 
 **Example request**
 
 ```bash
 curl -X POST http://localhost:5000/api/chat \
      -H 'Content-Type: application/json' \
+     -H 'X-API-Key: your_backend_api_key_here' \
      -d '{"message": "What is the capital of France?"}'
 ```
 
@@ -224,15 +236,25 @@ curl -X POST http://localhost:5000/api/chat \
 }
 ```
 
+#### `POST /api/translate`
+
+Translate human text into `symbolic`, `dict`, `json`, or `ai` format.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `message` | string | ✓ | The user's message |
+| `format` | string | | `symbolic`, `dict`, `json`, or `ai` (default: `ai`) |
+
 #### `GET /health`
 
-Returns `{"status": "ok"}` — useful for uptime checks.
+Returns `{"status":"ok","groq_ready":...,"api_key_protected":...}`.
 
 ### Environment variables
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `GROQ_API_KEY` | ✓ | — | Your Groq API key |
+| `BACKEND_API_KEY` | ✓ | — | Shared key required for `/api/*` requests |
 | `GROQ_MODEL` | | `llama3-8b-8192` | Default model |
 | `FLASK_DEBUG` | | `0` | Set to `1` for dev mode |
 
