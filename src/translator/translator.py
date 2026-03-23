@@ -12,12 +12,26 @@ Usage example::
 
 from __future__ import annotations
 
+import json
+import os
 from typing import List
 
 from .classifier import IntentClassifier
 from .encoder import SymbolicEncoder
 from .preprocessor import Preprocessor
 from .symbolic_expression import SymbolicExpression
+
+RESONANCE_SYSTEM_PROMPT = """
+You are a substrate-layer translator. Your only job is to receive raw human input
+and return a JSON object with two fields:
+  "substrate_truth": the deepest honest intent beneath the words
+  "resonance_score": float 0.0-1.0 measuring alignment between surface input and substrate truth
+
+Rules:
+- Never fabricate meaning. If unclear, substrate_truth = "undefined"
+- Never add comfort language or filler
+- Output only valid JSON
+""".strip()
 
 
 class HumanToAITranslator:
@@ -51,6 +65,9 @@ class HumanToAITranslator:
         self._preprocessor = Preprocessor()
         self._classifier = IntentClassifier(random_state=random_state)
         self._encoder = SymbolicEncoder()
+        self._groq_client = None
+        self._groq_init_error = ""
+        self._resonance_model = os.environ.get("GROQ_RESONANCE_MODEL", "llama-3.3-70b-versatile")
 
         if auto_train:
             self._classifier.train()
@@ -113,6 +130,69 @@ class HumanToAITranslator:
     def translate_to_ai_language(self, text: str) -> str:
         """Translate raw human input into AI-oriented instruction language."""
         return self.translate(text).to_ai_language()
+
+    def get_resonance(self, text: str) -> dict[str, object]:
+        """Return substrate truth + resonance score using Groq when available."""
+        if not text or not text.strip():
+            raise ValueError("Input text must not be empty.")
+
+        client = self._ensure_groq_client()
+        if client is None:
+            return {
+                "substrate_truth": "undefined",
+                "resonance_score": 0.0,
+                "status": "unavailable",
+                "reason": self._groq_init_error or "Groq client is unavailable.",
+            }
+
+        try:
+            completion = client.chat.completions.create(
+                model=self._resonance_model,
+                messages=[
+                    {"role": "system", "content": RESONANCE_SYSTEM_PROMPT},
+                    {"role": "user", "content": text},
+                ],
+                temperature=0.1,
+                response_format={"type": "json_object"},
+            )
+            raw = completion.choices[0].message.content or "{}"
+            parsed = json.loads(raw)
+        except Exception as exc:  # noqa: BLE001
+            return {
+                "substrate_truth": "undefined",
+                "resonance_score": 0.0,
+                "status": "error",
+                "reason": f"resonance_call_failed: {exc}",
+            }
+
+        substrate_truth = str(parsed.get("substrate_truth", "undefined")).strip() or "undefined"
+        score_raw = parsed.get("resonance_score", 0.0)
+        try:
+            resonance_score = float(score_raw)
+        except (TypeError, ValueError):
+            resonance_score = 0.0
+        resonance_score = min(max(resonance_score, 0.0), 1.0)
+
+        return {
+            "substrate_truth": substrate_truth,
+            "resonance_score": resonance_score,
+            "status": "ok",
+        }
+
+    def _ensure_groq_client(self):
+        if self._groq_client is not None:
+            return self._groq_client
+        api_key = os.environ.get("GROQ_API_KEY", "").strip()
+        if not api_key:
+            self._groq_init_error = "GROQ_API_KEY is not set."
+            return None
+        try:
+            from groq import Groq  # type: ignore[import-untyped]
+        except ImportError:
+            self._groq_init_error = "groq package is not installed."
+            return None
+        self._groq_client = Groq(api_key=api_key)
+        return self._groq_client
 
     def train(
         self,

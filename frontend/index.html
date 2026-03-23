@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="1ONE - an ominous dark bridge console with runtime-only auth and a single-turn request flow."
+    />
+    <title>1ONE | Bridge Console</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script defer src="./app.js"></script>
+  </head>
+  <body>
+    <div class="bg-layer bg-layer-a" aria-hidden="true"></div>
+    <div class="bg-layer bg-layer-b" aria-hidden="true"></div>
+    <div class="noise" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <div class="brand-lockup">
+        <div class="brand-mark" aria-hidden="true">1</div>
+        <div>
+          <p class="eyebrow">1ONE</p>
+          <h1>Bridge console</h1>
+        </div>
+      </div>
+
+      <div class="topbar-actions">
+        <span class="status-pill" id="authStatus">Secret idle</span>
+        <button class="ghost-button" type="button" id="changeSecretButton">
+          Enter secret
+        </button>
+      </div>
+    </header>
+
+    <main class="shell">
+      <section class="hero card">
+        <div class="hero-copy">
+          <p class="eyebrow">Single-turn only</p>
+          <h2>Send one sealed instruction into the dark.</h2>
+          <p class="lede">
+            1ONE is a one-shot bridge for discreet requests. The secret lives
+            only in memory, the payload is posted once to <code>/api/bridge</code>,
+            and the result is surfaced without building a chat trail.
+          </p>
+        </div>
+
+        <div class="hero-metrics" aria-label="Bridge constraints">
+          <div class="metric">
+            <span class="metric-label">Persistence</span>
+            <strong>none</strong>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Turns</span>
+            <strong>one</strong>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Endpoint</span>
+            <strong>/api/bridge</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid">
+        <section class="card form-card" aria-labelledby="bridgeFormTitle">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Dispatch</p>
+              <h3 id="bridgeFormTitle">Single-turn bridge form</h3>
+            </div>
+            <span class="microcopy">No conversation history is kept.</span>
+          </div>
+
+          <form id="bridgeForm" class="bridge-form">
+            <label class="field">
+              <span>Instruction</span>
+              <textarea
+                id="prompt"
+                name="prompt"
+                rows="8"
+                maxlength="4000"
+                placeholder="State the one request you want 1ONE to send..."
+                required
+              ></textarea>
+            </label>
+
+            <div class="form-row">
+              <div class="inline-note">
+                <span class="inline-dot"></span>
+                <span>Auth is in memory only. Refreshing clears it.</span>
+              </div>
+              <button class="primary-button" type="submit" id="submitButton">
+                Dispatch
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <section class="card result-card" aria-labelledby="resultTitle">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Results</p>
+              <h3 id="resultTitle">Bridge output</h3>
+            </div>
+            <span class="microcopy" id="resultMeta">Awaiting first signal.</span>
+          </div>
+
+          <div class="result-summary" id="resultSummary">
+            <p class="result-empty">
+              No request has been sent yet. Arm the secret, write one instruction,
+              and dispatch it across the bridge.
+            </p>
+          </div>
+
+          <div class="result-panel">
+            <div class="panel-head">
+              <span>Raw response</span>
+              <button class="ghost-button tiny" type="button" id="copyResultButton" disabled>
+                Copy
+              </button>
+            </div>
+            <pre id="resultOutput" class="result-output" aria-live="polite">{
+  "status": "idle"
+}</pre>
+          </div>
+        </section>
+      </section>
+
+      <section class="card notes-card" aria-labelledby="notesTitle">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Safety notes</p>
+            <h3 id="notesTitle">Disclaimers and footnotes</h3>
+          </div>
+        </div>
+
+        <div class="notes-grid">
+          <article>
+            <h4>Disclaimers</h4>
+            <ul class="list">
+              <li>
+                The secret is stored only in a transient JavaScript variable and
+                is not written to localStorage, sessionStorage, or cookies.
+              </li>
+              <li>
+                1ONE sends a single POST request to <code>/api/bridge</code> and
+                does not maintain a multi-turn conversation log.
+              </li>
+              <li>
+                Responses are displayed as received. If the backend returns an
+                error, the UI will surface the status and payload directly.
+              </li>
+            </ul>
+          </article>
+
+          <article>
+            <h4>Footnotes</h4>
+            <ol class="list footnotes">
+              <li>
+                In-memory auth means the page forgets the secret on refresh,
+                tab close, or a full reload.
+              </li>
+              <li>
+                The bridge payload is intentionally minimal so the backend can
+                decide how much to accept or ignore.
+              </li>
+              <li>
+                If the endpoint expects a different field contract, the request
+                body can be adjusted without changing the rest of the UI.
+              </li>
+            </ol>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <div
+      class="modal"
+      id="authModal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="authTitle"
+      aria-hidden="true"
+    >
+      <div class="modal-backdrop" data-close-modal></div>
+      <div class="modal-card card">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Authentication</p>
+            <h3 id="authTitle">Enter the in-memory secret</h3>
+          </div>
+          <button
+            class="ghost-button tiny"
+            type="button"
+            data-close-modal
+            aria-label="Close authentication dialog"
+          >
+            Close
+          </button>
+        </div>
+
+        <p class="modal-copy">
+          The secret never leaves the browser except as an authorization header
+          on the bridge request. It is not stored on disk.
+        </p>
+
+        <form id="authForm" class="auth-form">
+          <label class="field">
+            <span>Secret</span>
+            <input
+              id="secretInput"
+              name="secret"
+              type="password"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="Paste the bridge secret here"
+              required
+            />
+          </label>
+
+          <div class="form-row">
+            <div class="inline-note">
+              <span class="inline-dot"></span>
+              <span>Used only for this tab session.</span>
+            </div>
+            <button class="primary-button" type="submit">Arm secret</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </body>
+</html>

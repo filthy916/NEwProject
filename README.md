@@ -149,12 +149,13 @@ python main.py
 
 ---
 
-## Groq backend server
+## 1ONE Full-Stack Bridge
 
-`server.py` is a Flask backend that proxies chat requests to the
-[Groq API](https://console.groq.com).  **All Groq API calls happen
-server-side** — the API key is never sent to the client or hardcoded in the
-source.
+`server.py` now serves both:
+- a stateless web frontend at `/` (single-turn bridge UI)
+- backend APIs (`/api/bridge`, `/api/chat`, `/api/translate`)
+
+All Groq API calls happen server-side.
 
 ### Setup
 
@@ -203,10 +204,23 @@ will provide `PORT`; `server.py` now reads it automatically.
 
 ### API reference
 
-All `/api/*` endpoints require an API key sent in one of these headers:
+All `/api/*` endpoints require the bridge secret in one of these headers:
 
-- `X-API-Key: <BACKEND_API_KEY>`
-- `Authorization: Bearer <BACKEND_API_KEY>`
+- `X-Auth-Secret: <BRIDGE_SECRET_916>`
+- `X-API-Key: <BRIDGE_SECRET_916>` (compat)
+- `Authorization: Bearer <BRIDGE_SECRET_916>` (compat)
+
+#### `POST /api/bridge`
+
+Single-turn Human↔AI bridge endpoint.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `direction` | string | | `human_to_ai` or `ai_to_human` |
+| `text` | string | ✓ | Source payload |
+| `provider` | string | | Default `groq` |
+| `max_retries` | number | | 1..3 (default 3) |
+| `format` | string | | `json` or `text` |
 
 #### `POST /api/chat`
 
@@ -223,7 +237,7 @@ All `/api/*` endpoints require an API key sent in one of these headers:
 ```bash
 curl -X POST http://localhost:5000/api/chat \
      -H 'Content-Type: application/json' \
-     -H 'X-API-Key: your_backend_api_key_here' \
+     -H 'X-Auth-Secret: your_916_secret_here' \
      -d '{"message": "What is the capital of France?"}'
 ```
 
@@ -238,23 +252,28 @@ curl -X POST http://localhost:5000/api/chat \
 
 #### `POST /api/translate`
 
-Translate human text into `symbolic`, `dict`, `json`, or `ai` format.
+Translate human text and return symbolic + substrate resonance.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `message` | string | ✓ | The user's message |
+| `text` | string | ✓ | The source input text (alias: `message`) |
 | `format` | string | | `symbolic`, `dict`, `json`, or `ai` (default: `ai`) |
+
+Response includes:
+- `symbolic` (structured symbolic expression)
+- `substrate_truth` (resonance-layer intent extraction)
+- `resonance_score` (0.0 to 1.0)
 
 #### `GET /health`
 
-Returns `{"status":"ok","groq_ready":...,"api_key_protected":...}`.
+Returns `{"status":"ok|degraded","groq_ready":...,"bridge_secret_protected":...}`.
 
 ### Environment variables
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `GROQ_API_KEY` | ✓ | — | Your Groq API key |
-| `BACKEND_API_KEY` | ✓ | — | Shared key required for `/api/*` requests |
+| `BRIDGE_SECRET_916` | ✓ | — | Shared secret required for `/api/*` requests |
 | `GROQ_MODEL` | | `llama3-8b-8192` | Default model |
 | `FLASK_DEBUG` | | `0` | Set to `1` for dev mode |
 

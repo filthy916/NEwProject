@@ -150,3 +150,13 @@ class TestTranslatorNoisyQueries:
         expr = translator.translate("can't find file")
         assert expr.intent == "NEGATE"
         assert expr.arguments.get("negated") is True
+
+
+class TestTranslatorResonance:
+    def test_resonance_fallback_without_groq_key(self, monkeypatch):
+        monkeypatch.delenv("GROQ_API_KEY", raising=False)
+        t = HumanToAITranslator()
+        result = t.get_resonance("turn on the lights")
+        assert "substrate_truth" in result
+        assert "resonance_score" in result
+        assert isinstance(float(result["resonance_score"]), float)
