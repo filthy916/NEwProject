@@ -155,7 +155,7 @@ python main.py
 - a stateless web frontend at `/` (single-turn bridge UI)
 - backend APIs (`/api/bridge`, `/api/chat`, `/api/translate`)
 
-All Groq API calls happen server-side.
+All model API calls happen server-side.
 
 ### Setup
 
@@ -218,7 +218,7 @@ Single-turn Human↔AI bridge endpoint.
 |---|---|---|---|
 | `direction` | string | | `human_to_ai` or `ai_to_human` |
 | `text` | string | ✓ | Source payload |
-| `provider` | string | | Default `groq` |
+| `provider` | string | | `groq` or `openai` (default `groq`) |
 | `max_retries` | number | | 1..3 (default 3) |
 | `format` | string | | `json` or `text` |
 
@@ -227,7 +227,8 @@ Single-turn Human↔AI bridge endpoint.
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `message` | string | ✓ | The user's message |
-| `model` | string | | Groq model name (default: `llama3-8b-8192`) |
+| `provider` | string | | `groq` or `openai` (default: `groq`) |
+| `model` | string | | Provider model name (defaults from env) |
 | `system` | string | | Optional system prompt |
 | `resonate` | boolean | | Rewrite message to AI-oriented format (default: `true`) |
 | `include_translation` | boolean | | Include translated intermediate payload |
@@ -272,9 +273,11 @@ Returns `{"status":"ok|degraded","groq_ready":...,"bridge_secret_protected":...}
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `GROQ_API_KEY` | ✓ | — | Your Groq API key |
+| `GROQ_API_KEY` | | — | Your Groq API key |
+| `OPENAI_API_KEY` | | — | Your OpenAI API key |
 | `BRIDGE_SECRET_916` | ✓ | — | Shared secret required for `/api/*` requests |
 | `GROQ_MODEL` | | `llama3-8b-8192` | Default model |
+| `OPENAI_MODEL` | | `gpt-4o-mini` | Default OpenAI model |
 | `FLASK_DEBUG` | | `0` | Set to `1` for dev mode |
 
 ---

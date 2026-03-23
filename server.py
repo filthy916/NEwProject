@@ -29,6 +29,8 @@ _translator = HumanToAITranslator()
 
 _GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "").strip()
 _DEFAULT_MODEL = os.environ.get("GROQ_MODEL", "llama3-8b-8192")
+_OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "").strip()
+_OPENAI_DEFAULT_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
 _BRIDGE_SECRET = os.environ.get("BRIDGE_SECRET_916", "").strip()
 
 _groq_client = None
@@ -43,6 +45,21 @@ if _GROQ_API_KEY:
 else:
     _groq_init_error = (
         "GROQ_API_KEY environment variable is not set. "
+        "Copy .env.example to .env and add your key."
+    )
+
+_openai_client = None
+_openai_init_error = ""
+if _OPENAI_API_KEY:
+    try:
+        from openai import OpenAI  # type: ignore[import-untyped]
+    except ImportError:
+        _openai_init_error = "The 'openai' package is not installed. Run: pip install openai"
+    else:
+        _openai_client = OpenAI(api_key=_OPENAI_API_KEY)
+else:
+    _openai_init_error = (
+        "OPENAI_API_KEY environment variable is not set. "
         "Copy .env.example to .env and add your key."
     )
 
@@ -94,10 +111,8 @@ def _provider_generate(
     style: str,
     attempt: int,
 ) -> tuple[str, str | None]:
-    if provider != "groq":
+    if provider not in {"groq", "openai"}:
         return "", f"Unsupported provider: {provider}"
-    if _groq_client is None:
-        return "", _groq_init_error or "Groq provider is unavailable."
 
     if direction == "human_to_ai":
         system_prompt = (
@@ -125,12 +140,24 @@ def _provider_generate(
         },
     ]
 
-    try:
-        completion = _groq_client.chat.completions.create(model=model, messages=messages)
-    except Exception as exc:  # noqa: BLE001
-        app.logger.warning("Groq provider failure on attempt %s: %s", attempt, exc)
-        return "", "Groq provider request failed."
+    if provider == "groq":
+        if _groq_client is None:
+            return "", _groq_init_error or "Groq provider is unavailable."
+        try:
+            completion = _groq_client.chat.completions.create(model=model, messages=messages)
+        except Exception as exc:  # noqa: BLE001
+            app.logger.warning("Groq provider failure on attempt %s: %s", attempt, exc)
+            return "", "Groq provider request failed."
+        reply = completion.choices[0].message.content or ""
+        return reply.strip(), None
 
+    if _openai_client is None:
+        return "", _openai_init_error or "OpenAI provider is unavailable."
+    try:
+        completion = _openai_client.chat.completions.create(model=model, messages=messages)
+    except Exception as exc:  # noqa: BLE001
+        app.logger.warning("OpenAI provider failure on attempt %s: %s", attempt, exc)
+        return "", "OpenAI provider request failed."
     reply = completion.choices[0].message.content or ""
     return reply.strip(), None
 
@@ -178,7 +205,7 @@ def bridge():
         return _json_response({"error": "Invalid format. Use 'json' or 'text'."}, 400)
 
     max_retries = _clamp_retries(data.get("max_retries"))
-    model = str(data.get("model") or _DEFAULT_MODEL).strip()
+    model = str(data.get("model") or (_OPENAI_DEFAULT_MODEL if provider == "openai" else _DEFAULT_MODEL)).strip()
 
     normalized_meta = normalize_text(text)
     normalized_input = str(normalized_meta["normalized"])
@@ -206,7 +233,7 @@ def bridge():
         raw_candidate = resonant_prompt if direction == "human_to_ai" else normalized_input
         provider_error: str | None = None
 
-        if provider == "groq" and _groq_client is not None:
+        if provider in {"groq", "openai"}:
             candidate, provider_error = _provider_generate(
                 provider=provider,
                 model=model,
@@ -218,14 +245,14 @@ def bridge():
             )
             if candidate:
                 raw_candidate = candidate
-        elif provider != "groq":
-            provider_error = f"Unsupported provider: {provider}"
 
         resonant_candidate = (
             raw_candidate if direction == "human_to_ai" else ai_to_human_format(raw_candidate)
         )
         refusal, echo = detect_refusal_or_echo(resonant_candidate, normalized_input)
         attempt_verified = verify_reply(resonant_candidate) and not echo
+        if provider_error:
+            attempt_verified = False
         attempt_status = "ok" if attempt_verified else "retry_needed"
         if provider_error and not attempt_verified:
             attempt_status = "provider_error"
@@ -258,6 +285,8 @@ def bridge():
         final_status = "retry_exhausted" if attempts else "provider_unavailable"
         if provider == "groq" and _groq_client is None and not attempts:
             last_error = _groq_init_error or "Groq provider is unavailable."
+        if provider == "openai" and _openai_client is None and not attempts:
+            last_error = _openai_init_error or "OpenAI provider is unavailable."
 
     payload: dict[str, Any] = {
         "direction": direction,
@@ -327,9 +356,6 @@ def translate():
 
 @app.route("/api/chat", methods=["POST"])
 def chat():
-    if _groq_client is None:
-        return _json_response({"error": _groq_init_error}, 503)
-
     data = request.get_json(silent=True) or {}
     message = str(data.get("message", "")).strip()
     if not message:
@@ -337,7 +363,16 @@ def chat():
             {"error": "Request body must include a non-empty 'message' field."}, 400
         )
 
-    model = str(data.get("model") or _DEFAULT_MODEL).strip()
+    provider = str(data.get("provider", "groq")).strip().lower()
+    if provider not in {"groq", "openai"}:
+        return _json_response({"error": f"Unsupported provider: {provider}"}, 400)
+
+    if provider == "groq" and _groq_client is None:
+        return _json_response({"error": _groq_init_error}, 503)
+    if provider == "openai" and _openai_client is None:
+        return _json_response({"error": _openai_init_error}, 503)
+
+    model = str(data.get("model") or (_OPENAI_DEFAULT_MODEL if provider == "openai" else _DEFAULT_MODEL)).strip()
     system_prompt = str(data.get("system", "")).strip()
     resonate = _parse_bool(data.get("resonate", True), default=True)
     include_translation = _parse_bool(data.get("include_translation", False), default=False)
@@ -356,13 +391,16 @@ def chat():
     messages.append({"role": "user", "content": user_content})
 
     try:
-        completion = _groq_client.chat.completions.create(model=model, messages=messages)
+        if provider == "groq":
+            completion = _groq_client.chat.completions.create(model=model, messages=messages)
+        else:
+            completion = _openai_client.chat.completions.create(model=model, messages=messages)
     except Exception as exc:  # noqa: BLE001
-        app.logger.warning("Groq chat failure: %s", exc)
-        return _json_response({"error": "Groq provider request failed."}, 502)
+        app.logger.warning("%s chat failure: %s", provider, exc)
+        return _json_response({"error": f"{provider} provider request failed."}, 502)
 
     reply = (completion.choices[0].message.content or "").strip()
-    payload: dict[str, Any] = {"reply": reply, "model": model, "provider": "groq"}
+    payload: dict[str, Any] = {"reply": reply, "model": model, "provider": provider}
     if include_translation and expr is not None:
         payload["translation"] = expr.to_dict()
         payload["ai_message"] = user_content
@@ -376,6 +414,7 @@ def health():
         {
             "status": "ok" if ready else "degraded",
             "groq_ready": _groq_client is not None,
+            "openai_ready": _openai_client is not None,
             "bridge_secret_protected": bool(_BRIDGE_SECRET),
             "ready": ready,
             "mode": "single_turn",

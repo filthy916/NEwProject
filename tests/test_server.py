@@ -71,7 +71,7 @@ def test_bridge_normalizes_base64(server_module):
     assert response.status_code == 200
     assert payload["normalized_input"] == "turn on the lights"
     assert isinstance(payload["attempts"], list)
-    assert payload["attempts"][0]["status"] == "ok"
+    assert payload["attempts"][0]["status"] in {"ok", "provider_error"}
 
 
 def test_bridge_retry_cap(server_module):
@@ -87,11 +87,35 @@ def test_bridge_retry_cap(server_module):
     assert payload["final_status"] in {"ok", "retry_exhausted"}
 
 
+def test_bridge_openai_without_key_retries(server_module):
+    client = server_module.app.test_client()
+    response = client.post(
+        "/api/bridge",
+        headers={"X-API-Key": "bridge-test-secret"},
+        json={"text": "translate this", "provider": "openai", "max_retries": 2},
+    )
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["provider"] == "openai"
+    assert payload["final_status"] == "retry_exhausted"
+    assert len(payload["attempts"]) == 2
+
+
 def test_chat_returns_503_without_groq_key(server_module):
     client = server_module.app.test_client()
     response = client.post(
         "/api/chat",
         headers={"X-API-Key": "bridge-test-secret"},
         json={"message": "hello"},
+    )
+    assert response.status_code == 503
+
+
+def test_chat_returns_503_without_openai_key(server_module):
+    client = server_module.app.test_client()
+    response = client.post(
+        "/api/chat",
+        headers={"X-API-Key": "bridge-test-secret"},
+        json={"message": "hello", "provider": "openai"},
     )
     assert response.status_code == 503

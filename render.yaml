@@ -7,7 +7,11 @@ services:
     envVars:
       - key: GROQ_API_KEY
         sync: false
+      - key: OPENAI_API_KEY
+        sync: false
       - key: BRIDGE_SECRET_916
         sync: false
       - key: GROQ_MODEL
         value: llama3-8b-8192
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini

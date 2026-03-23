@@ -72,11 +72,42 @@
           </div>
 
           <form id="bridgeForm" class="bridge-form">
+            <div class="form-row">
+              <label class="field">
+                <span>Direction</span>
+                <select id="direction" name="direction">
+                  <option value="human_to_ai">Human -> AI</option>
+                  <option value="ai_to_human">AI -> Human</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Provider</span>
+                <select id="provider" name="provider">
+                  <option value="groq">Groq</option>
+                  <option value="openai">OpenAI</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label class="field">
+                <span>Retries</span>
+                <input id="max_retries" name="max_retries" type="number" min="1" max="3" value="3" />
+              </label>
+              <label class="field">
+                <span>Format</span>
+                <select id="format" name="format">
+                  <option value="json">JSON</option>
+                  <option value="text">Text</option>
+                </select>
+              </label>
+            </div>
+
             <label class="field">
               <span>Instruction</span>
               <textarea
-                id="prompt"
-                name="prompt"
+                id="text"
+                name="text"
                 rows="8"
                 maxlength="4000"
                 placeholder="State the one request you want 1ONE to send..."
