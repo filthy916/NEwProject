@@ -17,7 +17,7 @@ Usage
 
 3. POST to the endpoint::
 
-       curl -X POST http://localhost:5000/api/chat \\
+       curl -X POST http://localhost:10000/api/chat \\
             -H 'Content-Type: application/json' \\
             -d '{"message": "What is the capital of France?", "model": "llama3-8b-8192"}'
 
@@ -29,6 +29,9 @@ GROQ_MODEL    (optional, default: llama3-8b-8192)
     Default Groq model to use when the request does not specify one.
 FLASK_DEBUG   (optional)
     Set to ``1`` to enable Flask debug mode (development only).
+PORT          (optional)
+    Port to bind to. Render injects this automatically for web services;
+    if it is absent, the server falls back to port 10000.
 """
 
 from __future__ import annotations
@@ -129,4 +132,5 @@ def health() -> tuple:
 
 if __name__ == "__main__":
     debug = os.environ.get("FLASK_DEBUG", "0") == "1"
-    app.run(host="0.0.0.0", port=5000, debug=debug)
+    port = int(os.environ.get("PORT", "10000"))
+    app.run(host="0.0.0.0", port=port, debug=debug)

@@ -179,6 +179,28 @@ source.
    python server.py
    ```
 
+### Deploying to Render
+
+Render was trying to run `npm run start`, which fails because this repository is
+a Python service. This repository now includes three deployment-friendly
+entrypoints that all start the same Flask server:
+
+- `package.json` so existing Render services that still run `npm run start`
+  can successfully launch `python server.py`
+- `render.yaml` for new Render blueprint-based web services
+- `Procfile` for platforms that honor Procfile process definitions
+
+If you create a new Render service from this repo, use the blueprint in
+`render.yaml` or make sure the service is configured with:
+
+```text
+Build Command: pip install -r requirements.txt
+Start Command: python server.py
+```
+
+Also set `GROQ_API_KEY` in the Render dashboard environment variables. Render
+will provide `PORT`; `server.py` now reads it automatically and falls back to port `10000` when `PORT` is not set.
+
 ### API reference
 
 #### `POST /api/chat`
@@ -192,7 +214,7 @@ source.
 **Example request**
 
 ```bash
-curl -X POST http://localhost:5000/api/chat \
+curl -X POST http://localhost:10000/api/chat \
      -H 'Content-Type: application/json' \
      -d '{"message": "What is the capital of France?"}'
 ```
