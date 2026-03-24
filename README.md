@@ -206,9 +206,11 @@ will provide `PORT`; `server.py` now reads it automatically.
 
 All `/api/*` endpoints require the bridge secret in one of these headers:
 
-- `X-Auth-Secret: <BRIDGE_SECRET_916>`
-- `X-API-Key: <BRIDGE_SECRET_916>` (compat)
-- `Authorization: Bearer <BRIDGE_SECRET_916>` (compat)
+- `X-Auth-Secret: <BRIDGE_SECRET_916 or BRIDGE_SECRET>`
+- `X-API-Key: <BRIDGE_SECRET_916 or BRIDGE_SECRET>` (compat)
+- `Authorization: Bearer <BRIDGE_SECRET_916 or BRIDGE_SECRET>` (compat)
+
+If no bridge secret env var is configured, auth is disabled and these headers are optional.
 
 #### `POST /api/bridge`
 
@@ -275,10 +277,13 @@ Returns `{"status":"ok|degraded","groq_ready":...,"bridge_secret_protected":...}
 |---|---|---|---|
 | `GROQ_API_KEY` | | — | Your Groq API key |
 | `OPENAI_API_KEY` | | — | Your OpenAI API key |
-| `BRIDGE_SECRET_916` | ✓ | — | Shared secret required for `/api/*` requests |
+| `BRIDGE_SECRET_916` | | — | Optional shared secret to protect `/api/*` requests |
+| `BRIDGE_SECRET` | | — | Optional alias for `BRIDGE_SECRET_916` |
 | `GROQ_MODEL` | | `llama3-8b-8192` | Default model |
 | `OPENAI_MODEL` | | `gpt-4o-mini` | Default OpenAI model |
 | `FLASK_DEBUG` | | `0` | Set to `1` for dev mode |
+
+Set either `BRIDGE_SECRET_916` or `BRIDGE_SECRET` only if you want protected API access.
 
 ---
 

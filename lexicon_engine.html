@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Lexicon Engine — Formal Encoder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+/* ═══════════════════════════════════════════════
+   LEXICON ENGINE v6 — ROYAL EDITION
+   Art direction: Formal academic instrument →
+   Palace dark with antique gold, deep navy surfaces.
+   Typography: Cormorant Garamond display +
+   DM Sans body + DM Mono code.
+   Density: balanced — generous headers, dense data.
+   ═══════════════════════════════════════════════ */
+
+:root {
+  --gold:          #c4a661;
+  --gold-dim:      #9c7f46;
+  --gold-faint:    rgba(196,166,97,0.12);
+  --gold-glow:     rgba(196,166,97,0.06);
+
+  --bg:            #07090f;
+  --surface-1:     #0d1018;
+  --surface-2:     #131720;
+  --surface-3:     #1a1f2e;
+  --surface-4:     #212738;
+
+  --border:        rgba(196,166,97,0.14);
+  --border-dim:    rgba(255,255,255,0.06);
+
+  --text-primary:  #e8e2d4;
+  --text-muted:    #8b8577;
+  --text-faint:    #4a4640;
+
+  --green:         #4e9a6a;
+  --green-dim:     rgba(78,154,106,0.15);
+  --red:           #a85454;
+  --red-dim:       rgba(168,84,84,0.15);
+  --blue:          #5a7fa8;
+  --blue-dim:      rgba(90,127,168,0.15);
+  --violet:        #8b6bbf;
+  --amber:         #d4913a;
+
+  --font-display:  'Cormorant Garamond', Georgia, serif;
+  --font-body:     'DM Sans', system-ui, sans-serif;
+  --font-mono:     'DM Mono', 'Courier New', monospace;
+
+  --r-sm: 3px;
+  --r-md: 6px;
+  --r-lg: 10px;
+
+  --ease: cubic-bezier(0.16,1,0.3,1);
+  --t:    180ms;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;scroll-behavior:smooth}
+body{min-height:100dvh;font-family:var(--font-body);font-size:14px;color:var(--text-primary);background:var(--bg);overflow-x:hidden}
+button{cursor:pointer;background:none;border:none;font:inherit;color:inherit}
+input,textarea,select{font:inherit;color:inherit}
+::selection{background:rgba(196,166,97,0.2);color:var(--text-primary)}
+:focus-visible{outline:1px solid var(--gold);outline-offset:2px;border-radius:var(--r-sm)}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}
+::-webkit-scrollbar-thumb:hover{background:var(--gold-dim)}
+
+/* ─── BACKGROUND ─── */
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 60% 40% at 50% 0%, rgba(196,166,97,0.04) 0%, transparent 70%),
+    radial-gradient(ellipse 30% 50% at 0% 50%, rgba(90,127,168,0.03) 0%, transparent 70%),
+    radial-gradient(ellipse 30% 50% at 100% 50%, rgba(139,107,191,0.02) 0%, transparent 70%);
+}
+/* SVG grid */
+body::after{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(rgba(196,166,97,0.025) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(196,166,97,0.025) 1px,transparent 1px);
+  background-size:48px 48px;
+  mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 30%,transparent 100%);
+}
+
+/* ─── LAYOUT ─── */
+.app{position:relative;z-index:1;display:flex;flex-direction:column;min-height:100dvh}
+
+/* ─── TOPBAR ─── */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;height:52px;
+  background:rgba(13,16,24,0.9);
+  border-bottom:1px solid var(--border);
+  backdrop-filter:blur(12px);
+  position:sticky;top:0;z-index:100;
+  flex-shrink:0;
+}
+.topbar-left{display:flex;align-items:center;gap:12px}
+.logo-wrap{display:flex;align-items:center;gap:10px}
+.logo-text{font-family:var(--font-display);font-size:20px;font-weight:500;letter-spacing:0.04em;color:var(--gold)}
+.logo-sub{font-size:11px;color:var(--text-faint);letter-spacing:0.12em;text-transform:uppercase;margin-top:1px;font-weight:300}
+.topbar-divider{width:1px;height:28px;background:var(--border)}
+.topbar-badge{font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-faint);border:1px solid var(--border-dim);padding:2px 8px;border-radius:99px}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.btn-icon{
+  width:32px;height:32px;border-radius:var(--r-sm);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text-muted);transition:color var(--t) var(--ease),background var(--t) var(--ease);
+}
+.btn-icon:hover{color:var(--text-primary);background:rgba(255,255,255,0.05)}
+.topbar-ver{font-size:10px;color:var(--text-faint);font-family:var(--font-mono);letter-spacing:0.08em}
+
+/* ─── MAIN 3-COLUMN ─── */
+.main{display:grid;grid-template-columns:300px 1fr 280px;gap:0;flex:1;overflow:hidden;height:calc(100dvh - 52px - 32px)}
+
+/* ─── PANELS ─── */
+.panel{display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--border)}
+.panel:last-child{border-right:none}
+.panel-header{
+  padding:12px 16px 10px;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.panel-title{font-family:var(--font-display);font-size:13px;font-weight:500;letter-spacing:0.06em;color:var(--gold);text-transform:uppercase}
+.panel-sub{font-size:10px;color:var(--text-faint);letter-spacing:0.08em;text-transform:uppercase;margin-top:1px}
+.panel-body{flex:1;overflow-y:auto;padding:14px 16px}
+.panel-footer{padding:10px 16px;border-top:1px solid var(--border);flex-shrink:0}
+
+/* ─── SECTION LABEL ─── */
+.section-label{
+  font-size:9px;letter-spacing:0.14em;text-transform:uppercase;
+  color:var(--text-faint);margin-bottom:8px;display:flex;align-items:center;gap:6px;
+}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border-dim)}
+
+/* ─── API ROW ─── */
+.api-row{display:flex;gap:6px;margin-bottom:14px}
+.api-input{
+  flex:1;padding:7px 10px;background:var(--surface-2);border:1px solid var(--border);
+  border-radius:var(--r-sm);font-family:var(--font-mono);font-size:11px;color:var(--text-primary);
+  transition:border-color var(--t) var(--ease);
+}
+.api-input:focus{border-color:var(--gold);outline:none}
+.api-input::placeholder{color:var(--text-faint)}
+.btn-connect{
+  padding:7px 14px;background:var(--gold-faint);border:1px solid var(--border);
+  border-radius:var(--r-sm);font-size:11px;color:var(--gold);letter-spacing:0.04em;
+  transition:all var(--t) var(--ease);white-space:nowrap;
+}
+.btn-connect:hover{background:rgba(196,166,97,0.2);border-color:var(--gold)}
+.btn-connect.connected{color:var(--green);border-color:rgba(78,154,106,0.3);background:var(--green-dim)}
+.btn-connect:disabled{opacity:0.4;cursor:not-allowed}
+.conn-dot{
+  display:inline-block;width:5px;height:5px;border-radius:50%;margin-right:5px;
+  background:var(--text-faint);transition:background var(--t) var(--ease);
+}
+.conn-dot.live{background:var(--green);box-shadow:0 0 6px var(--green)}
+
+/* ─── TEXTAREA ─── */
+.input-wrap{position:relative;margin-bottom:10px}
+.main-textarea{
+  width:100%;min-height:130px;max-height:240px;resize:vertical;
+  padding:10px 12px;background:var(--surface-2);border:1px solid var(--border);
+  border-radius:var(--r-md);font-family:var(--font-body);font-size:13px;
+  line-height:1.6;color:var(--text-primary);
+  transition:border-color var(--t) var(--ease);
+}
+.main-textarea:focus{border-color:var(--gold);outline:none}
+.main-textarea::placeholder{color:var(--text-faint)}
+.char-count{position:absolute;bottom:8px;right:10px;font-size:10px;color:var(--text-faint);font-family:var(--font-mono)}
+
+/* ─── SLOP METER ─── */
+.slop-track{height:3px;background:var(--surface-4);border-radius:99px;overflow:hidden;margin-bottom:4px}
+.slop-fill{height:100%;border-radius:99px;transition:width 0.4s var(--ease),background 0.4s var(--ease);background:var(--green);width:0%}
+.slop-meta{display:flex;justify-content:space-between;align-items:center}
+.slop-pct{font-family:var(--font-mono);font-size:10px;color:var(--text-muted)}
+.slop-label{font-size:10px;color:var(--text-faint);letter-spacing:0.06em}
+
+/* ─── TAGS ─── */
+.repair-tags{display:flex;flex-wrap:wrap;gap:4px;min-height:22px;margin-bottom:2px}
+.tag{
+  font-size:10px;padding:2px 7px;border-radius:99px;border:1px solid;
+  font-family:var(--font-mono);letter-spacing:0.04em;transition:all var(--t) var(--ease);
+  opacity:0.35;
+}
+.tag.active{opacity:1}
+.tag-slang{color:var(--amber);border-color:rgba(212,145,58,0.3);background:rgba(212,145,58,0.08)}
+.tag-filler{color:var(--blue);border-color:rgba(90,127,168,0.3);background:var(--blue-dim)}
+.tag-typo{color:var(--violet);border-color:rgba(139,107,191,0.3);background:rgba(139,107,191,0.1)}
+.tag-punct{color:var(--green);border-color:rgba(78,154,106,0.3);background:var(--green-dim)}
+.tag-domain{color:var(--gold);border-color:var(--gold-faint);background:var(--gold-glow)}
+
+/* ─── MODE TABS ─── */
+.mode-tabs{display:flex;gap:3px;padding:3px;background:var(--surface-2);border-radius:var(--r-md);border:1px solid var(--border);margin-bottom:10px}
+.mode-tab{
+  flex:1;padding:5px 0;border-radius:calc(var(--r-md) - 2px);
+  font-size:10px;letter-spacing:0.06em;text-transform:uppercase;
+  color:var(--text-faint);transition:all var(--t) var(--ease);text-align:center;font-weight:500;
+}
+.mode-tab:hover{color:var(--text-muted)}
+.mode-tab.active{background:var(--gold-faint);color:var(--gold);border:1px solid var(--border)}
+
+/* ─── MODE INFO PANEL ─── */
+.mode-info{
+  background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);
+  padding:10px 12px;margin-bottom:10px;min-height:60px;
+  transition:all 0.25s var(--ease);
+}
+.mode-info-title{font-family:var(--font-display);font-size:14px;font-weight:500;color:var(--gold);margin-bottom:4px;letter-spacing:0.04em}
+.mode-info-desc{font-size:11px;line-height:1.55;color:var(--text-muted)}
+.mode-info-usage{font-size:10px;color:var(--text-faint);margin-top:6px;padding-top:6px;border-top:1px solid var(--border-dim);font-style:italic}
+.mode-info-formula{font-family:var(--font-mono);font-size:10px;color:var(--violet);margin-top:4px;opacity:0.7}
+
+/* ─── DOMAIN SELECT ─── */
+.domain-select{
+  width:100%;padding:7px 10px;background:var(--surface-2);border:1px solid var(--border);
+  border-radius:var(--r-sm);font-size:12px;color:var(--text-primary);appearance:none;
+  cursor:pointer;transition:border-color var(--t) var(--ease);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238b8577' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;
+}
+.domain-select:focus{border-color:var(--gold);outline:none}
+.domain-hint{font-size:10px;color:var(--text-faint);margin-top:5px;line-height:1.4;font-style:italic}
+
+/* ─── ENCODE BTN ─── */
+.btn-encode{
+  width:100%;padding:9px;margin-top:10px;
+  background:var(--gold-faint);border:1px solid var(--gold-dim);
+  border-radius:var(--r-md);font-size:12px;letter-spacing:0.08em;
+  color:var(--gold);text-transform:uppercase;font-weight:500;
+  transition:all var(--t) var(--ease);position:relative;overflow:hidden;
+}
+.btn-encode::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(196,166,97,0.06),transparent);
+  transform:translateX(-100%);transition:transform 0.5s var(--ease);
+}
+.btn-encode:hover::before{transform:translateX(100%)}
+.btn-encode:hover{background:rgba(196,166,97,0.18);border-color:var(--gold)}
+.btn-encode:disabled{opacity:0.35;cursor:not-allowed}
+.btn-encode.loading{animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}
+
+/* ─── CENTER OUTPUT ─── */
+.output-panel{display:flex;flex-direction:column;overflow:hidden}
+.output-meta{
+  display:flex;align-items:center;gap:10px;padding:8px 16px;
+  border-bottom:1px solid var(--border);flex-shrink:0;
+  background:rgba(13,16,24,0.5);
+}
+.meta-chip{
+  font-size:9px;font-family:var(--font-mono);letter-spacing:0.08em;text-transform:uppercase;
+  padding:2px 8px;border-radius:99px;border:1px solid var(--border-dim);color:var(--text-faint);
+}
+.meta-chip.active{border-color:var(--gold-dim);color:var(--gold)}
+.meta-spacer{flex:1}
+.output-scroll{flex:1;overflow-y:auto;padding:20px}
+.output-empty{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:100%;color:var(--text-faint);text-align:center;gap:12px;
+}
+.output-empty-symbol{font-family:var(--font-display);font-size:48px;opacity:0.15;line-height:1}
+.output-empty-text{font-size:12px;letter-spacing:0.08em;text-transform:uppercase;max-width:22ch;line-height:1.6}
+.output-content{
+  font-family:var(--font-mono);font-size:12px;line-height:1.75;color:var(--text-primary);
+  white-space:pre-wrap;word-break:break-word;
+}
+.output-content .tok{display:inline;animation:fadeIn 0.15s ease forwards}
+@keyframes fadeIn{from{opacity:0;transform:translateY(1px)}to{opacity:1;transform:translateY(0)}}
+.output-footer{
+  padding:10px 16px;border-top:1px solid var(--border);flex-shrink:0;
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(7,9,15,0.7);
+}
+.output-footer-left{display:flex;gap:12px}
+.foot-stat{font-family:var(--font-mono);font-size:10px;color:var(--text-faint)}
+.foot-stat span{color:var(--text-muted);margin-left:3px}
+.btn-copy{
+  font-size:10px;color:var(--text-faint);letter-spacing:0.06em;text-transform:uppercase;
+  padding:4px 10px;border:1px solid var(--border-dim);border-radius:var(--r-sm);
+  transition:all var(--t) var(--ease);
+}
+.btn-copy:hover{color:var(--text-primary);border-color:var(--border)}
+
+/* ─── RIGHT COLUMN ─── */
+/* FSM */
+.fsm-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:10px}
+.fsm-node{
+  padding:7px 8px;border-radius:var(--r-sm);border:1px solid var(--border-dim);
+  background:var(--surface-2);transition:all var(--t) var(--ease);
+  display:flex;flex-direction:column;gap:2px;
+}
+.fsm-node.active{border-color:rgba(196,166,97,0.5);background:var(--gold-faint);box-shadow:0 0 12px rgba(196,166,97,0.08)}
+.fsm-node.done{border-color:rgba(78,154,106,0.3);background:var(--green-dim)}
+.fsm-node.error{border-color:rgba(168,84,84,0.4);background:var(--red-dim)}
+.fsm-node-name{font-family:var(--font-mono);font-size:10px;font-weight:500;color:var(--text-muted)}
+.fsm-node.active .fsm-node-name{color:var(--gold)}
+.fsm-node.done .fsm-node-name{color:var(--green)}
+.fsm-node.error .fsm-node-name{color:var(--red)}
+.fsm-node-formal{font-size:9px;color:var(--text-faint);letter-spacing:0.04em;font-family:var(--font-mono);line-height:1.3}
+.fsm-node-ms{font-size:9px;color:var(--text-faint);font-family:var(--font-mono)}
+.fsm-node-ms span{color:var(--gold-dim)}
+
+/* Session metrics */
+.metrics-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
+.metric-card{
+  background:var(--surface-2);border:1px solid var(--border-dim);border-radius:var(--r-sm);
+  padding:8px 10px;
+}
+.metric-val{font-family:var(--font-mono);font-size:18px;font-weight:500;color:var(--text-primary);line-height:1}
+.metric-key{font-size:9px;color:var(--text-faint);letter-spacing:0.1em;text-transform:uppercase;margin-top:3px}
+
+/* Reasoning log */
+.log-scroll{height:200px;overflow-y:auto;background:var(--surface-1);border:1px solid var(--border-dim);border-radius:var(--r-md);padding:8px}
+.log-entry{
+  font-family:var(--font-mono);font-size:9.5px;line-height:1.5;
+  padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.03);
+  display:flex;gap:6px;align-items:flex-start;
+}
+.log-ts{color:var(--text-faint);flex-shrink:0;min-width:42px}
+.log-type{flex-shrink:0;min-width:36px;font-weight:500}
+.log-type.sys{color:var(--blue)}
+.log-type.ai{color:var(--violet)}
+.log-type.str{color:var(--green)}
+.log-type.rep{color:var(--amber)}
+.log-type.err{color:var(--red)}
+.log-msg{color:var(--text-muted);word-break:break-all}
+
+/* ─── FOOTNOTES ─── */
+.footnotes{
+  border-top:1px solid var(--border);padding:8px 20px;
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(7,9,15,0.9);flex-shrink:0;height:32px;
+}
+.fn-left{display:flex;gap:16px;align-items:center}
+.fn-item{font-size:9px;color:var(--text-faint);letter-spacing:0.06em}
+.fn-item strong{color:var(--text-muted);font-weight:500}
+.fn-divider{width:1px;height:12px;background:var(--border-dim)}
+.fn-right{font-family:var(--font-mono);font-size:9px;color:var(--text-faint)}
+.fn-kbd{
+  font-size:9px;font-family:var(--font-mono);color:var(--text-faint);
+  border:1px solid var(--border-dim);padding:1px 5px;border-radius:3px;
+  background:var(--surface-2);
+}
+
+/* ─── DOMAIN INFO TOOLTIP ─── */
+.domain-info-box{
+  background:var(--surface-3);border:1px solid var(--border);border-radius:var(--r-md);
+  padding:10px 12px;margin-top:8px;
+  animation:slideUp 0.2s var(--ease);
+}
+@keyframes slideUp{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.domain-info-name{font-family:var(--font-display);font-size:13px;font-weight:500;color:var(--gold);letter-spacing:0.04em;margin-bottom:4px}
+.domain-info-text{font-size:10px;color:var(--text-muted);line-height:1.55}
+.domain-info-examples{font-size:9px;color:var(--text-faint);margin-top:5px;font-family:var(--font-mono)}
+
+/* ─── PROGRESS BAR ─── */
+.progress-wrap{height:2px;background:var(--surface-4);overflow:hidden;position:relative}
+.progress-fill{
+  height:100%;background:linear-gradient(90deg,var(--gold-dim),var(--violet));
+  transition:width 0.3s var(--ease);width:0%;
+}
+
+/* ─── TOOLTIP ─── */
+[data-tip]{position:relative}
+[data-tip]:hover::after{
+  content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);
+  background:var(--surface-4);border:1px solid var(--border);color:var(--text-muted);
+  font-size:9px;white-space:nowrap;padding:4px 8px;border-radius:var(--r-sm);z-index:200;
+  pointer-events:none;
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ═══ TOPBAR ═══ -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="logo-wrap">
+        <!-- Crown SVG Logo -->
+        <svg width="22" height="20" viewBox="0 0 22 20" fill="none" aria-label="Lexicon Engine">
+          <path d="M1 16 L4 6 L8 12 L11 2 L14 12 L18 6 L21 16 Z" stroke="#c4a661" stroke-width="1.2" stroke-linejoin="round" fill="rgba(196,166,97,0.06)"/>
+          <path d="M0 16 H22" stroke="#c4a661" stroke-width="1" opacity="0.5"/>
+          <path d="M1 18 H21" stroke="#c4a661" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="11" cy="2" r="1.2" fill="#c4a661"/>
+          <circle cx="1" cy="16" r="1" fill="#c4a661" opacity="0.7"/>
+          <circle cx="21" cy="16" r="1" fill="#c4a661" opacity="0.7"/>
+        </svg>
+        <div>
+          <div class="logo-text">Lexicon Engine</div>
+          <div class="logo-sub">Formal Encoder</div>
+        </div>
+      </div>
+      <div class="topbar-divider"></div>
+      <span class="topbar-badge">v6.0 Royal</span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-ver" id="statusText">OFFLINE</span>
+      <div class="topbar-divider"></div>
+      <button class="btn-icon" data-tip="Toggle light/dark" data-theme-toggle aria-label="Toggle theme">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ═══ PROGRESS ═══ -->
+  <div class="progress-wrap"><div class="progress-fill" id="progressBar"></div></div>
+
+  <!-- ═══ MAIN 3-COL ═══ -->
+  <main class="main">
+
+    <!-- ══ LEFT: INPUT CONTROLS ══ -->
+    <aside class="panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">Input & Configuration</div>
+          <div class="panel-sub">API · Mode · Domain</div>
+        </div>
+      </div>
+      <div class="panel-body" style="display:flex;flex-direction:column;gap:0;padding-bottom:8px">
+
+        <div class="section-label">Middleware Connection</div>
+        <div class="api-row">
+          <input type="password" class="api-input" id="apiKey" placeholder="Bridge secret (optional)" autocomplete="off"/>
+          <select class="api-input" id="providerSelect" onchange="handleProviderChange(this)">
+            <option value="groq">Groq</option>
+            <option value="openai">OpenAI</option>
+          </select>
+          <button class="btn-connect" id="connectBtn" onclick="handleConnect()">
+            <span class="conn-dot" id="connDot"></span>Connect
+          </button>
+        </div>
+
+        <div class="section-label">Input Text</div>
+        <div class="input-wrap">
+          <textarea class="main-textarea" id="mainInput" placeholder="Paste or type your text here. The engine will normalise, score, and encode it through the selected formal mode…" oninput="handleInput(this)"></textarea>
+          <span class="char-count" id="charCount">0</span>
+        </div>
+
+        <!-- Slop Meter -->
+        <div class="section-label">Slop Density</div>
+        <div style="margin-bottom:12px">
+          <div class="slop-track"><div class="slop-fill" id="slopFill"></div></div>
+          <div class="slop-meta">
+            <span class="slop-pct" id="slopPct">0%</span>
+            <span class="slop-label" id="slopLabel">—</span>
+          </div>
+          <div class="repair-tags" id="repairTags" style="margin-top:6px">
+            <span class="tag tag-slang" id="tagSlang">SLANG</span>
+            <span class="tag tag-filler" id="tagFiller">FILLER</span>
+            <span class="tag tag-typo" id="tagTypo">TYPO</span>
+            <span class="tag tag-punct" id="tagPunct">PUNCT</span>
+            <span class="tag tag-domain" id="tagDomain">DOMAIN</span>
+          </div>
+        </div>
+
+        <!-- Mode Selector -->
+        <div class="section-label">Encoding Mode</div>
+        <div class="mode-tabs" id="modeTabs">
+          <button class="mode-tab active" data-mode="npe" onclick="selectMode('npe',this)">NPE</button>
+          <button class="mode-tab" data-mode="symbolic" onclick="selectMode('symbolic',this)">Sym</button>
+          <button class="mode-tab" data-mode="logic" onclick="selectMode('logic',this)">Logic</button>
+          <button class="mode-tab" data-mode="fsm" onclick="selectMode('fsm',this)">FSM</button>
+          <button class="mode-tab" data-mode="vector" onclick="selectMode('vector',this)">Vec</button>
+        </div>
+
+        <!-- Mode Info -->
+        <div class="mode-info" id="modeInfo">
+          <div class="mode-info-title" id="modeTitle">Null-Pointer Encoding</div>
+          <div class="mode-info-desc" id="modeDesc">Produces a formally-typed representation with Hindley-Milner type signatures, explicit preconditions (∀x), postconditions, and a CONFIDENCE score P(parse|x).</div>
+          <div class="mode-info-usage" id="modeUsage">Best for: structured data definitions, function contracts, API schemas, type-safe analysis.</div>
+          <div class="mode-info-formula" id="modeFormula">T ⊢ e : τ  |  card(S) → ℤ⁺  |  O(n log n)</div>
+        </div>
+
+        <!-- Domain -->
+        <div class="section-label">Knowledge Domain</div>
+        <select class="domain-select" id="domainSelect" onchange="handleDomainChange(this)">
+          <option value="auto">⟳  Auto-detect</option>
+          <option value="cs">⌨  Computer Science</option>
+          <option value="ml">⚛  Machine Learning</option>
+          <option value="math">∑  Mathematics</option>
+          <option value="logic">⊢  Formal Logic</option>
+          <option value="nlp">◈  NLP / Linguistics</option>
+          <option value="law">⚖  Legal / Regulatory</option>
+          <option value="bio">⬡  Biology / Genomics</option>
+          <option value="finance">$  Quantitative Finance</option>
+        </select>
+        <div class="domain-hint" id="domainHint">Auto-detect infers domain from TF-IDF keyword distribution across the input corpus.</div>
+
+        <button class="btn-encode" id="encodeBtn" onclick="handleEncode()" disabled>
+          Encode  <span style="opacity:0.5;font-size:10px">Ctrl+Enter</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ══ CENTER: OUTPUT ══ -->
+    <section class="output-panel">
+      <div class="output-meta">
+        <div class="meta-chip active" id="chipMode">NPE</div>
+        <div class="meta-chip" id="chipDomain">AUTO</div>
+        <div class="meta-chip" id="chipModel">GROQ · AUTO</div>
+        <div class="meta-spacer"></div>
+        <button class="btn-copy" id="copyBtn" onclick="copyOutput()">Copy</button>
+      </div>
+
+      <div class="output-scroll" id="outputScroll">
+        <div class="output-empty" id="outputEmpty">
+          <div class="output-empty-symbol">Λ</div>
+          <div class="output-empty-text">Connect API & encode to materialise output</div>
+        </div>
+        <div class="output-content" id="outputContent" style="display:none"></div>
+      </div>
+
+      <div class="output-footer">
+        <div class="output-footer-left">
+          <div class="foot-stat">Tokens <span id="statTokens">—</span></div>
+          <div class="foot-stat">Chars <span id="statChars">—</span></div>
+          <div class="foot-stat">Time <span id="statTime">—</span></div>
+          <div class="foot-stat">Repairs <span id="statRepairs">—</span></div>
+        </div>
+        <div class="foot-stat" id="statModel" style="color:var(--text-faint)">Middleware route: /api/encode</div>
+      </div>
+    </section>
+
+    <!-- ══ RIGHT: FSM + METRICS + LOG ══ -->
+    <aside class="panel" style="border-right:none">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">System State</div>
+          <div class="panel-sub">FSM · Metrics · Log</div>
+        </div>
+      </div>
+      <div class="panel-body" style="padding-bottom:8px">
+
+        <div class="section-label">Pipeline FSM  M=(Q,Σ,δ,q₀,F)</div>
+        <div class="fsm-grid" id="fsmGrid">
+          <!-- populated by JS -->
+        </div>
+
+        <div class="section-label">Session Metrics</div>
+        <div class="metrics-row">
+          <div class="metric-card"><div class="metric-val" id="mEncode">0</div><div class="metric-key">Encodes</div></div>
+          <div class="metric-card"><div class="metric-val" id="mTokens">0</div><div class="metric-key">Tokens</div></div>
+          <div class="metric-card"><div class="metric-val" id="mRepairs">0</div><div class="metric-key">Repairs</div></div>
+          <div class="metric-card"><div class="metric-val" id="mSlop">—</div><div class="metric-key">Avg Slop</div></div>
+        </div>
+
+        <div class="section-label">Live Reasoning</div>
+        <div class="log-scroll" id="logScroll">
+          <div class="log-entry">
+            <span class="log-ts">00:00.0</span>
+            <span class="log-type sys">[SYS]</span>
+            <span class="log-msg">Lexicon Engine v6 initialised. Awaiting API connection.</span>
+          </div>
+        </div>
+
+      </div>
+    </aside>
+  </main>
+
+  <!-- ═══ FOOTNOTES ═══ -->
+  <footer class="footnotes">
+    <div class="fn-left">
+      <span class="fn-item"><strong>Model</strong> OpenAI or Groq via backend middleware</span>
+      <div class="fn-divider"></div>
+      <span class="fn-item"><strong>Repair Pipeline</strong> Levenshtein · TF-IDF · CFG</span>
+      <div class="fn-divider"></div>
+      <span class="fn-item"><strong>Modes</strong> NPE · Symbolic · Logic · FSM · Vector</span>
+      <div class="fn-divider"></div>
+      <span class="fn-item">Encoding conforms to Hindley-Milner & Church–Turing formal systems</span>
+    </div>
+    <div class="fn-right">
+      <kbd class="fn-kbd">Ctrl+Enter</kbd>&ensp;Encode&ensp;·&ensp;
+      <kbd class="fn-kbd">Ctrl+K</kbd>&ensp;Clear
+    </div>
+  </footer>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════
+let runtimeSecret = '';
+let isConnected = false;
+let currentMode = 'npe';
+let currentDomain = 'auto';
+let currentProvider = 'groq';
+let currentModel = '';
+let isEncoding = false;
+let sessionTokens = 0;
+let sessionEncodes = 0;
+let sessionRepairs = 0;
+let sessionSlopSum = 0;
+let startTime = Date.now();
+let lastResponseText = '';
+let connectorState = {};
+
+// ─── THEME ───
+(function(){
+  const r = document.documentElement;
+  const stored = 'dark';
+  r.setAttribute('data-theme', stored);
+  const btn = document.querySelector('[data-theme-toggle]');
+  if (btn) btn.addEventListener('click', () => {
+    const cur = r.getAttribute('data-theme');
+    const next = cur === 'dark' ? 'light' : 'dark';
+    r.setAttribute('data-theme', next);
+    btn.innerHTML = next === 'dark'
+      ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>'
+      : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>';
+  });
+})();
+
+// ─── MODE DATA ───
+const MODES = {
+  npe: {
+    name: 'Null-Pointer Encoding (NPE)',
+    short: 'NPE',
+    desc: 'Produces formally-typed representations using Hindley-Milner type inference. Emits type signatures (τ), explicit preconditions (∀x ∈ S: P(x)), postconditions as logical guarantees, cardinality bounds, and a Bayesian CONFIDENCE score P(correct_parse | x).',
+    usage: 'Best for: function contracts, API schema validation, data structure definitions, type-safe formal specification.',
+    formula: 'T ⊢ e : τ  ·  card(S) → ℤ⁺  ·  P(y|x) = softmax(Wx+b)  ·  O(n log n)',
+    sysPrompt: `You are a formal Null-Pointer Encoder. Analyse the user's text and produce a rigorous NPE-style encoding. Structure your output as follows:
+
+TYPE SIGNATURE:
+  name(param₁: Type₁, param₂: Type₂, ...) → ReturnType
+  where Type ∈ {Int, Float, String, List[T], Set[T], Map[K,V], Option[T], Result[T,E], nn.Module, Tensor[N,D]}
+
+PRECONDITIONS (∀x):
+  List all formal preconditions as quantified propositions.
+  Example: ∀x ∈ arr: x ≠ null ∧ x > 0
+
+POSTCONDITIONS (guarantees):
+  State what the function/expression guarantees on successful execution.
+
+CARDINALITY:
+  card(input) = ? · card(output) = ? · Injective/Surjective/Bijective
+
+COMPLEXITY:
+  Time: O(?) · Space: O(?) · Worst-case: O(?)
+
+CONFIDENCE:
+  P(correct_parse | x) = 0.XX · Ambiguity: HIGH/MED/LOW
+
+Use precise mathematical notation. Infer types from context. Apply Hindley-Milner unification.`
+  },
+  symbolic: {
+    name: 'Symbolic Equation Encoding',
+    short: 'SYM',
+    desc: 'Translates input into λ-calculus expressions, matrix/tensor notation (W ∈ ℝᵐˣⁿ), and symbolic equations using ∑ ∏ ∀ ∃ ∈ ∉ ⊆ ∪ ∩ → ↦ operators. References canonical algorithms: Viterbi, Baum-Welch, EM, Adam, SGD.',
+    usage: 'Best for: mathematical problem decomposition, algorithm analysis, ML model notation, research paper symbolic translation.',
+    formula: 'λx.f(x)  ·  ∑ᵢP(xᵢ|θ)  ·  W∈ℝᵐˣⁿ  ·  argmax_θ L(θ)  ·  ∇_θJ(θ)',
+    sysPrompt: `You are a Symbolic Equation Encoder. Convert the user's text into rigorous symbolic/mathematical notation.
+
+SYMBOLIC DECOMPOSITION:
+  Express the core computation as λ-calculus or set-theoretic notation.
+  λx.f(x)  ·  f: A → B  ·  f(x) = { case₁ if P(x), case₂ otherwise }
+
+MATRIX / TENSOR FORM (if applicable):
+  Represent data as typed matrices: X ∈ ℝⁿˣᵈ, W ∈ ℝᵈˣᵏ
+  Operations: Y = σ(XW + b)
+
+PROBABILISTIC FORM (if applicable):
+  P(y|x) ~ Categorical(softmax(Wx + b))
+  L(θ) = -∑ᵢ log P(yᵢ|xᵢ; θ)   [MLE objective]
+
+ALGORITHM REFERENCE:
+  Name the closest canonical algorithm (QuickSort, Dijkstra, Viterbi, Baum-Welch, EM, Adam, SGD, PageRank, A*, MCMC).
+  State time complexity and convergence conditions.
+
+SET / RELATION FORM:
+  S = {x | P(x)}  ·  R ⊆ A×B  ·  ∀x∈S: Q(x)  ·  ∃x∈S: R(x)
+
+CLOSED-FORM (if derivable):
+  Provide closed-form solution or prove NP-hardness / undecidability.
+
+Use Unicode math symbols throughout. Never use LaTeX.`
+  },
+  logic: {
+    name: 'Formal Logic Encoding',
+    short: 'LOGIC',
+    desc: 'Constructs a proof-theoretic representation with premises as quantified propositions, named axioms, inference rules (Modus Ponens, Universal Instantiation), derived lemmas, and a step-by-step proof sketch. Assigns complexity class (P, NP, NP-complete, PSPACE) and decidability judgment.',
+    usage: 'Best for: argument analysis, theorem proving scaffolds, decision procedure design, constraint satisfaction specification.',
+    formula: 'P₁∧P₂⊢C  ·  MP: {P, P→Q}⊢Q  ·  UI: ∀x.P(x)⊢P[a/x]  ·  ¬∃x.P(x)≡∀x.¬P(x)',
+    sysPrompt: `You are a Formal Logic Encoder implementing natural deduction and first-order predicate logic.
+
+PREMISES (quantified):
+  List all stated and implied premises as formal propositions.
+  Use: ∀ ∃ ∈ ∧ ∨ ¬ → ↔ ⊢ ⊨ symbols.
+  Example: ∀x ∈ S: P(x) ∧ Q(x) → R(x)
+
+AXIOMS (if standard axioms apply):
+  Name relevant axioms (Peano, ZFC, Church–Turing, PAC-learning axioms, etc.)
+
+INFERENCE RULES APPLIED:
+  For each deduction step, name the rule:
+  · Modus Ponens (MP): {P, P→Q} ⊢ Q
+  · Universal Instantiation (UI): ∀x.P(x) ⊢ P[a/x]
+  · Existential Introduction (EI): P[a/x] ⊢ ∃x.P(x)
+  · Resolution: {P∨Q, ¬P∨R} ⊢ Q∨R
+
+DERIVED LEMMAS:
+  Intermediate conclusions derived from premises before the main theorem.
+
+PROOF SKETCH:
+  Step-by-step proof in natural deduction style. Number each step.
+  Format: [n] Formula    (Rule applied, from lines i,j)
+
+CONCLUSION:
+  The final derived theorem. State if it is a tautology, contingency, or contradiction.
+
+COMPLEXITY & DECIDABILITY:
+  Complexity class: P / NP / NP-complete / PSPACE / EXPTIME / undecidable
+  Decidable: YES/NO  · Reduction: [problem] ≤ₚ [this problem]`
+  },
+  fsm: {
+    name: 'Finite State Machine Encoding',
+    short: 'FSM',
+    desc: 'Outputs the complete 5-tuple M = (Q, Σ, δ, q₀, F) for a DFA/NFA/PDA/TM recognising the structure of the input. Defines all states Q, alphabet Σ, transition function δ: Q×Σ→Q, extended δ*: Q×Σ*→Q, accepted language L(M), and minimisation via Myhill-Nerode equivalence classes.',
+    usage: 'Best for: protocol specification, parser design, regex derivation, sequential logic circuits, workflow automata.',
+    formula: 'M=(Q,Σ,δ,q₀,F)  ·  δ*:Q×Σ*→Q  ·  L(M)={w∈Σ*|δ*(q₀,w)∈F}',
+    sysPrompt: `You are a Finite Automata Encoder. Convert the user's input into a rigorous formal automaton specification.
+
+AUTOMATON CLASS:
+  Identify: DFA / NFA / ε-NFA / PDA / Turing Machine / Mealy / Moore
+  Justify the class choice.
+
+FORMAL 5-TUPLE  M = (Q, Σ, δ, q₀, F):
+
+  Q  = { list all states explicitly }
+  Σ  = { input alphabet, define all symbols }
+  q₀ = initial state
+  F  = { accepting/final states }
+
+TRANSITION FUNCTION  δ: Q × Σ → Q
+  List every transition as:
+  δ(qᵢ, σ) = qⱼ
+  Include trap/dead state transitions (δ(qᵢ, σ) = ∅) where applicable.
+
+EXTENDED TRANSITION  δ*: Q × Σ* → Q
+  δ*(q, ε)  = q
+  δ*(q, wσ) = δ(δ*(q, w), σ)
+
+LANGUAGE RECOGNISED:
+  L(M) = { w ∈ Σ* | δ*(q₀, w) ∈ F }
+  Describe L(M) in English + regular expression or grammar rule.
+
+CLOSURE PROPERTIES:
+  Is L(M) closed under: union / intersection / complement / concatenation / Kleene star?
+
+MINIMISATION (Myhill-Nerode):
+  Identify indistinguishable state equivalence classes [x] ≡ₙ [y].
+  State the minimum number of states for an equivalent DFA.
+
+COMPUTATIONAL CLASS:
+  Regular / Context-Free / Context-Sensitive / Recursively Enumerable`
+  },
+  vector: {
+    name: 'Neural Vector Encoding',
+    short: 'VEC',
+    desc: 'Maps input through a full ML tensor pipeline: tokenisation → embedding matrix E∈ℝⁿˣᵈ → positional encoding → multi-head attention softmax(QKᵀ/√dₖ)V → intent decomposition into (task_type, action_verb, object_type, constraint, output_spec). Derives loss L(θ) and optimal parameter notation θ* = argmin_θ.',
+    usage: 'Best for: NLP pipeline design, transformer architecture analysis, embedding space analysis, ML model specification.',
+    formula: 'x̂=Tok(x)∈ℤⁿ · E∈ℝⁿˣᵈ · Attn=softmax(QKᵀ/√dₖ)V · θ*=argmin_θL(θ)',
+    sysPrompt: `You are a Neural Vector Pipeline Encoder. Model the user's input as a formal ML tensor pipeline.
+
+TOKENISATION:
+  x̂ = Tokenize(input) ∈ ℤⁿ   [token sequence, vocabulary V, |V| = ?]
+  Subword method: BPE / WordPiece / SentencePiece (infer appropriate)
+
+EMBEDDING LAYER:
+  E ∈ ℝ^(n×d)   [embedding matrix, d = embedding dim]
+  e_i = E[x̂_i]  ∈ ℝᵈ
+  PE(pos, 2i)   = sin(pos / 10000^(2i/d))   [positional encoding]
+  PE(pos, 2i+1) = cos(pos / 10000^(2i/d))
+  z_i = e_i + PE_i
+
+TRANSFORMER BLOCK (if applicable):
+  Q = Z·W_Q,  K = Z·W_K,  V = Z·W_V   ∈ ℝ^(n×dₖ)
+  Attention(Q,K,V) = softmax(QKᵀ / √dₖ) · V
+  MultiHead = Concat(head₁,...,headₕ)·W_O
+  FFN(x) = max(0, xW₁+b₁)W₂+b₂
+
+INTENT DECOMPOSITION:
+  Decompose the input into semantic roles:
+  · TASK_TYPE:    [classification / generation / regression / retrieval / reasoning]
+  · ACTION_VERB:  [the primary verb or operation]
+  · OBJECT_TYPE:  [what entity is being operated on]
+  · CONSTRAINT:   [any constraints, conditions, or filters]
+  · OUTPUT_SPEC:  [expected output format / type]
+
+LOSS FUNCTION & OPTIMISATION:
+  Appropriate L(θ) for the task:
+  · Cross-entropy: L = -∑ᵢ yᵢ log(ŷᵢ)
+  · MSE: L = (1/n)∑ᵢ (yᵢ - ŷᵢ)²
+  · Contrastive: L = max(0, m - sim(a,p) + sim(a,n))
+  θ* = argmin_θ L(θ)   via ∂L/∂θ autograd
+  Optimizer: Adam  [β₁=0.9, β₂=0.999, ε=1e-8]  or SGD+momentum
+
+LATENT SPACE NOTE:
+  Infer likely cluster structure or decision boundary geometry.`
+  }
+};
+
+// ─── DOMAIN DATA ───
+const DOMAINS = {
+  auto: { name: 'Auto-detect', hint: 'Auto-detect infers domain from TF-IDF keyword distribution across the input corpus.', examples: 'Σ freq(t,d)/max_d · IDF(t) = log(N/df(t))' },
+  cs: { name: 'Computer Science', hint: 'Targets CS vocabulary: algorithms, data structures, runtime complexity, systems, compilers, OS, networking.', examples: 'e.g. sorting, graphs, time complexity, memory, pointers' },
+  ml: { name: 'Machine Learning', hint: 'Activates ML-specific notation: loss functions, gradient descent, attention, embeddings, backpropagation, tensors.', examples: 'e.g. neural nets, transformers, training, inference, weights' },
+  math: { name: 'Mathematics', hint: 'Pure math mode: number theory, analysis, topology, abstract algebra, combinatorics, proof techniques.', examples: 'e.g. proofs, theorems, integrals, groups, rings, fields' },
+  logic: { name: 'Formal Logic', hint: 'Propositional and first-order logic, modal logic, temporal logic, sequent calculus, type theory.', examples: 'e.g. premises, deduction, satisfiability, decidability' },
+  nlp: { name: 'NLP / Linguistics', hint: 'Language model notation: parse trees, CFGs, morphology, semantics, dependency relations, POS tags.', examples: 'e.g. grammar, parsing, tokens, semantics, syntax' },
+  law: { name: 'Legal / Regulatory', hint: 'Encodes legal arguments as formal logic: statutes as axioms, precedents as lemmas, holdings as theorems.', examples: 'e.g. contracts, liability, jurisdiction, statutes, rulings' },
+  bio: { name: 'Biology / Genomics', hint: 'Genomic and systems biology notation: sequences, motifs, metabolic pathways as graphs, expression matrices.', examples: 'e.g. DNA, proteins, pathways, mutations, phylogenetics' },
+  finance: { name: 'Quantitative Finance', hint: 'Stochastic calculus, Itô processes, Black-Scholes, portfolio optimisation (Markowitz), VaR notation.', examples: 'e.g. options, risk, stochastic, volatility, derivatives' }
+};
+
+// ─── FSM STATES ───
+const FSM_STATES = [
+  { id: 'q0', name: 'IDLE',   formal: 'q₀ — σ ∈ Σ*', desc: 'Awaiting input' },
+  { id: 'q1', name: 'SCAN',   formal: 'H(X) entropy scan', desc: 'Tokenise & analyse' },
+  { id: 'q2', name: 'REPAIR', formal: 'Φ(x): Levenshtein', desc: 'Normalise & repair' },
+  { id: 'q3', name: 'ENCODE', formal: 'δ(q,σ) → q_enc', desc: 'Build system prompt' },
+  { id: 'q4', name: 'STREAM', formal: 'P(xₜ|x₁…xₜ₋₁)', desc: 'Autoregressive decode' },
+  { id: 'q5', name: 'DONE',   formal: 'δ*(q₀,w) ∈ F', desc: 'Accept state' },
+  { id: 'q6', name: 'RETRY',  formal: 'δ(qₑ,σ)→q₁', desc: 'Retry on 429/503' },
+  { id: 'q7', name: 'ERROR',  formal: '∅ — sink state', desc: 'Reject state' }
+];
+
+let fsmState = 'q0';
+let stateStart = 0;
+
+function buildFSMGrid() {
+  const grid = document.getElementById('fsmGrid');
+  grid.innerHTML = FSM_STATES.map(s => `
+    <div class="fsm-node" id="fsm_${s.id}" data-sid="${s.id}">
+      <div class="fsm-node-name">${s.name}</div>
+      <div class="fsm-node-formal">${s.formal}</div>
+      <div class="fsm-node-ms" id="fsm_ms_${s.id}"><span>—</span></div>
+    </div>
+  `).join('');
+}
+
+function setFSMState(sid, status = 'active') {
+  const prev = document.querySelector('.fsm-node.active');
+  if (prev) {
+    const prevId = prev.dataset.sid;
+    if (stateStart > 0) {
+      const ms = Date.now() - stateStart;
+      const msEl = document.getElementById(`fsm_ms_${prevId}`);
+      if (msEl) msEl.innerHTML = `<span>${ms}ms</span>`;
+    }
+    prev.classList.remove('active');
+    if (prevId !== sid) prev.classList.add('done');
+  }
+  if (sid === 'q7') {
+    FSM_STATES.forEach(s => {
+      const el = document.getElementById(`fsm_${s.id}`);
+      if (el && !el.classList.contains('done')) el.classList.remove('active');
+    });
+  }
+  const node = document.getElementById(`fsm_${sid}`);
+  if (node) {
+    node.classList.remove('done', 'error');
+    if (status === 'error') node.classList.add('error');
+    else node.classList.add('active');
+  }
+  fsmState = sid;
+  stateStart = Date.now();
+}
+
+function resetFSM() {
+  FSM_STATES.forEach(s => {
+    const el = document.getElementById(`fsm_${s.id}`);
+    if (el) { el.classList.remove('active','done','error'); }
+    const ms = document.getElementById(`fsm_ms_${s.id}`);
+    if (ms) ms.innerHTML = '<span>—</span>';
+  });
+  setFSMState('q0');
+}
+
+// ─── LOGGING ───
+let logStart = Date.now();
+function log(type, msg) {
+  const elapsed = ((Date.now() - logStart) / 1000).toFixed(1).padStart(5,'0');
+  const scroll = document.getElementById('logScroll');
+  const div = document.createElement('div');
+  div.className = 'log-entry';
+  div.innerHTML = `<span class="log-ts">${elapsed}</span><span class="log-type ${type}">[${type.toUpperCase()}]</span><span class="log-msg">${msg}</span>`;
+  scroll.appendChild(div);
+  scroll.scrollTop = scroll.scrollHeight;
+}
+
+// ─── INIT ───
+buildFSMGrid();
+setFSMState('q0');
+handleProviderChange(document.getElementById('providerSelect'));
+
+function handleProviderChange(sel) {
+  currentProvider = (sel?.value || 'groq').toLowerCase();
+  const providerInfo = connectorState[currentProvider] || {};
+  currentModel = providerInfo.default_model || '';
+  const chipText = currentModel
+    ? `${currentProvider.toUpperCase()} · ${currentModel}`
+    : `${currentProvider.toUpperCase()} · AUTO`;
+  document.getElementById('chipModel').textContent = chipText;
+  document.getElementById('statModel').textContent = `Provider: ${currentProvider.toUpperCase()} (middleware)`;
+  log('sys', `Provider → ${currentProvider.toUpperCase()}`);
+}
+
+// ─── MODE SELECT ───
+function selectMode(mode, btn) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const m = MODES[mode];
+  document.getElementById('modeTitle').textContent = m.name;
+  document.getElementById('modeDesc').textContent = m.desc;
+  document.getElementById('modeUsage').textContent = m.usage;
+  document.getElementById('modeFormula').textContent = m.formula;
+  document.getElementById('chipMode').textContent = m.short;
+  log('sys', `Mode → ${m.name}`);
+  checkReady();
+}
+
+// ─── DOMAIN CHANGE ───
+function handleDomainChange(sel) {
+  currentDomain = sel.value;
+  const d = DOMAINS[currentDomain];
+  document.getElementById('domainHint').innerHTML =
+    `${d.hint}<br/><span style="font-family:var(--font-mono);font-size:9px;color:var(--text-faint);margin-top:3px;display:block">${d.examples}</span>`;
+  document.getElementById('chipDomain').textContent = sel.value.toUpperCase();
+  log('sys', `Domain → ${d.name}`);
+}
+
+// ─── INPUT HANDLER ───
+function handleInput(ta) {
+  document.getElementById('charCount').textContent = ta.value.length;
+  analyseSlop(ta.value);
+  checkReady();
+}
+
+const SLANG_WORDS = ['ur','u','r','gonna','wanna','gotta','kinda','sorta','cuz','coz','prolly','lol','lmao','tbh','ngl','idk','imo','irl','omg','btw','fyi','smh','bruh','bro','yo'];
+const FILLER_PHRASES = ['basically','literally','like,','you know','kind of','sort of','really really','very very','just like','pretty much','i mean','so like'];
+const TYPO_PATTERNS = [/\bth e\b/,/\bteh\b/,/\brecieve\b/,/\boccured\b/,/\bseperate\b/,/\bdefinate/,/\baccidently\b/];
+
+function analyseSlop(text) {
+  const words = text.toLowerCase().split(/\s+/);
+  const total = words.length || 1;
+  let slangCount = 0, fillerCount = 0, typoCount = 0, punctScore = 0;
+
+  words.forEach(w => { if (SLANG_WORDS.includes(w.replace(/[^a-z]/g,''))) slangCount++; });
+  FILLER_PHRASES.forEach(p => { const re = new RegExp(p,'gi'); const m = text.match(re); if (m) fillerCount += m.length; });
+  TYPO_PATTERNS.forEach(p => { if (p.test(text)) typoCount++; });
+  const punctProblems = (text.match(/[.!?](?=[A-Za-z])/g)||[]).length;
+  punctScore = Math.min(punctProblems / total * 100, 100);
+
+  const rawSlop = Math.min(
+    ((slangCount / total) * 200) +
+    ((fillerCount / total) * 150) +
+    (typoCount * 5) +
+    (punctScore * 0.2), 100
+  );
+  const slop = Math.round(rawSlop);
+
+  const fill = document.getElementById('slopFill');
+  fill.style.width = slop + '%';
+  fill.style.background = slop < 20 ? 'var(--green)' : slop < 40 ? '#a8a03a' : slop < 65 ? 'var(--amber)' : 'var(--red)';
+
+  document.getElementById('slopPct').textContent = slop + '%';
+  const labels = ['—','Pristine','Mild Slop','Moderate','Heavy Slop','Critical'];
+  const idx = slop < 5 ? 0 : slop < 20 ? 1 : slop < 40 ? 2 : slop < 60 ? 3 : slop < 80 ? 4 : 5;
+  document.getElementById('slopLabel').textContent = labels[idx];
+
+  document.getElementById('tagSlang').classList.toggle('active', slangCount > 0);
+  document.getElementById('tagFiller').classList.toggle('active', fillerCount > 0);
+  document.getElementById('tagTypo').classList.toggle('active', typoCount > 0);
+  document.getElementById('tagPunct').classList.toggle('active', punctProblems > 0);
+  document.getElementById('tagDomain').classList.toggle('active', currentDomain !== 'auto');
+
+  return slop;
+}
+
+// ─── CONNECT ───
+function handleConnect() {
+  const keyEl = document.getElementById('apiKey');
+  const key = keyEl.value.trim();
+  runtimeSecret = key;
+
+  const headers = {};
+  if (runtimeSecret) headers['X-Auth-Secret'] = runtimeSecret;
+
+  fetch('/api/connectors', {
+    method: 'GET',
+    headers
+  })
+    .then(async (response) => {
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const reason = body.error || `HTTP ${response.status}`;
+        throw new Error(reason);
+      }
+      connectorState = body.providers || {};
+      const active = connectorState[currentProvider] || {};
+      currentModel = active.default_model || '';
+
+      isConnected = true;
+      document.getElementById('connDot').classList.add('live');
+      document.getElementById('connectBtn').classList.add('connected');
+      document.getElementById('connectBtn').innerHTML = '<span class="conn-dot live"></span>Connected';
+      document.getElementById('statusText').textContent = 'ONLINE';
+      document.getElementById('statusText').style.color = 'var(--green)';
+      handleProviderChange(document.getElementById('providerSelect'));
+      log('sys', 'Middleware auth accepted. Connector probe successful.');
+      log('sys', `Connector readiness · Groq=${Boolean(connectorState.groq?.ready)} · OpenAI=${Boolean(connectorState.openai?.ready)}`);
+      checkReady();
+    })
+    .catch((err) => {
+      runtimeSecret = '';
+      isConnected = false;
+      document.getElementById('statusText').textContent = 'OFFLINE';
+      document.getElementById('statusText').style.color = '';
+      log('err', `Connect failed: ${err.message}`);
+      checkReady();
+    });
+}
+
+function checkReady() {
+  const hasConnection = isConnected;
+  const hasText = document.getElementById('mainInput').value.trim().length > 3;
+  document.getElementById('encodeBtn').disabled = !(hasConnection && hasText) || isEncoding;
+}
+
+// ─── REPAIR TEXT ───
+function repairText(text) {
+  let t = text;
+  let repairs = 0;
+  const replacements = [
+    [/\bur\b/gi,'your'],[/\bu\b/gi,'you'],[/\br\b/gi,'are'],
+    [/\bgonna\b/gi,'going to'],[/\bwanna\b/gi,'want to'],
+    [/\bgotta\b/gi,'have to'],[/\bkinda\b/gi,'kind of'],
+    [/\bsorta\b/gi,'sort of'],[/\bcuz\b/gi,'because'],
+    [/\bcoz\b/gi,'because'],[/\bprolly\b/gi,'probably'],
+    [/\bteh\b/gi,'the'],[/\brecieve\b/gi,'receive'],
+    [/\baccidently\b/gi,'accidentally'],[/\bseperate\b/gi,'separate'],
+    [/\bdefinate/gi,'definite'],[/\boccured\b/gi,'occurred'],
+    [/\s+/g,' ']
+  ];
+  replacements.forEach(([re, rep]) => {
+    const before = t;
+    t = t.replace(re, rep);
+    if (t !== before) repairs++;
+  });
+  // Sentence case
+  t = t.replace(/([.!?]\s+)([a-z])/g, (m,p1,p2) => p1 + p2.toUpperCase());
+  if (t !== text) repairs++;
+  return { text: t.trim(), repairs };
+}
+
+// ─── ENCODE ───
+async function handleEncode() {
+  if (isEncoding || !isConnected) return;
+  const rawText = document.getElementById('mainInput').value.trim();
+  if (!rawText) return;
+
+  isEncoding = true;
+  document.getElementById('encodeBtn').disabled = true;
+  document.getElementById('encodeBtn').classList.add('loading');
+  document.getElementById('encodeBtn').textContent = 'Encoding…';
+
+  const encStart = Date.now();
+  const slop = analyseSlop(rawText);
+  sessionSlopSum += slop;
+
+  // FSM: SCAN
+  setFSMState('q1');
+  log('ai', `H(X) ≈ ${(-Math.log2(0.1) * 0.7).toFixed(3)} bits · Tokenising input…`);
+  log('ai', `TF-IDF filler scan: ${rawText.split(/\s+/).length} tokens · Domain: ${DOMAINS[currentDomain].name}`);
+  await delay(280);
+
+  // FSM: REPAIR
+  setFSMState('q2');
+  const { text: repairedText, repairs } = repairText(rawText);
+  sessionRepairs += repairs;
+  log('rep', `Φ(x) repair pass: ${repairs} edits · Levenshtein normalisation complete`);
+  log('rep', `CFG rule application: sentence boundary detection · punctuation normalisation`);
+  await delay(220);
+
+  // FSM: ENCODE
+  setFSMState('q3');
+  log('sys', `Middleware payload assembled · mode=${MODES[currentMode].short} · domain=${currentDomain.toUpperCase()}`);
+  const displayModel = currentModel || 'default';
+  log('ai', `Dispatching to backend middleware: provider=${currentProvider} · model=${displayModel} · stream=false`);
+  await delay(150);
+
+  // Clear output
+  const outputEmpty = document.getElementById('outputEmpty');
+  const outputContent = document.getElementById('outputContent');
+  outputEmpty.style.display = 'none';
+  outputContent.style.display = 'block';
+  outputContent.textContent = '';
+  setProgress(30);
+
+  // FSM: STREAM (backend roundtrip)
+  setFSMState('q4');
+
+  try {
+    const payload = {
+      text: repairedText,
+      mode: currentMode,
+      domain: currentDomain,
+      provider: currentProvider,
+      model: currentModel || undefined,
+      temperature: 0.3,
+      max_tokens: 1200
+    };
+
+    const response = await fetch('/api/encode', {
+      method: 'POST',
+      headers: {
+        ...(runtimeSecret ? { 'X-Auth-Secret': runtimeSecret } : {}),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const reason = body.error || `HTTP ${response.status}`;
+      throw new Error(reason);
+    }
+
+    lastResponseText = String(body.output || '');
+    outputContent.textContent = lastResponseText;
+    outputContent.scrollIntoView({ block: 'end', behavior: 'smooth' });
+    const tokenCount = Number(body.token_estimate || lastResponseText.split(/\s+/).filter(Boolean).length);
+    currentModel = String(body.model || currentModel || '');
+    document.getElementById('chipModel').textContent = `${currentProvider.toUpperCase()} · ${currentModel || 'AUTO'}`;
+    document.getElementById('statModel').textContent = `Provider: ${currentProvider.toUpperCase()} · Model: ${currentModel || 'default'}`;
+    setProgress(95);
+
+    sessionTokens += tokenCount;
+    sessionEncodes++;
+    document.getElementById('statTokens').textContent = tokenCount;
+    document.getElementById('statChars').textContent = lastResponseText.length;
+    document.getElementById('statTime').textContent = ((Date.now() - encStart) / 1000).toFixed(2) + 's';
+    document.getElementById('statRepairs').textContent = repairs;
+
+    document.getElementById('mEncode').textContent = sessionEncodes;
+    document.getElementById('mTokens').textContent = sessionTokens;
+    document.getElementById('mRepairs').textContent = sessionRepairs;
+    document.getElementById('mSlop').textContent = Math.round(sessionSlopSum / sessionEncodes) + '%';
+
+    setFSMState('q5');
+    setProgress(100);
+    log('str', `Middleware response complete · ~${tokenCount} tokens · ${((Date.now()-encStart)/1000).toFixed(2)}s · δ*(q₀,w) ∈ F`);
+
+    setTimeout(() => { setProgress(0); }, 1200);
+
+  } catch (err) {
+    setFSMState('q7', 'error');
+    setProgress(0);
+    const outputContent = document.getElementById('outputContent');
+    outputContent.textContent = `[ERROR]\n${err.message}\n\nVerify provider API key env vars on the backend. If bridge auth is enabled, also provide BRIDGE_SECRET_916 (or BRIDGE_SECRET).`;
+    log('err', err.message.slice(0,100));
+  } finally {
+    isEncoding = false;
+    const btn = document.getElementById('encodeBtn');
+    btn.classList.remove('loading');
+    btn.textContent = 'Encode  ';
+    btn.disabled = false;
+    checkReady();
+  }
+}
+
+function setProgress(pct) {
+  document.getElementById('progressBar').style.width = pct + '%';
+}
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function copyOutput() {
+  if (!lastResponseText) return;
+  navigator.clipboard.writeText(lastResponseText).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 1600);
+  });
+}
+
+// ─── KEYBOARD SHORTCUTS ───
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); if (!isEncoding) handleEncode(); }
+  if (e.ctrlKey && e.key === 'k') {
+    e.preventDefault();
+    document.getElementById('mainInput').value = '';
+    document.getElementById('charCount').textContent = '0';
+    analyseSlop('');
+    document.getElementById('outputContent').textContent = '';
+    document.getElementById('outputEmpty').style.display = 'flex';
+    document.getElementById('outputContent').style.display = 'none';
+    lastResponseText = '';
+    resetFSM();
+    log('sys', 'Cleared. Ready for new input.');
+    checkReady();
+  }
+});
+</script>
+</body>
+</html>

@@ -31,7 +31,11 @@ _GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "").strip()
 _DEFAULT_MODEL = os.environ.get("GROQ_MODEL", "llama3-8b-8192")
 _OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "").strip()
 _OPENAI_DEFAULT_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
-_BRIDGE_SECRET = os.environ.get("BRIDGE_SECRET_916", "").strip()
+_BRIDGE_SECRET = (
+    os.environ.get("BRIDGE_SECRET_916")
+    or os.environ.get("BRIDGE_SECRET")
+    or ""
+).strip()
 
 _groq_client = None
 _groq_init_error = ""
@@ -62,6 +66,58 @@ else:
         "OPENAI_API_KEY environment variable is not set. "
         "Copy .env.example to .env and add your key."
     )
+
+_ENCODER_MODES: dict[str, dict[str, str]] = {
+    "npe": {
+        "name": "Null-Pointer Encoding (NPE)",
+        "system": (
+            "You are a formal Null-Pointer Encoder. Output strict sections: TYPE SIGNATURE, "
+            "PRECONDITIONS, POSTCONDITIONS, CARDINALITY, COMPLEXITY, CONFIDENCE. "
+            "Use concise, precise mathematical notation and plain text only."
+        ),
+    },
+    "symbolic": {
+        "name": "Symbolic Equation Encoding",
+        "system": (
+            "You are a Symbolic Equation Encoder. Convert input into symbolic decomposition, "
+            "matrix/tensor form when relevant, probabilistic form when relevant, algorithm reference, "
+            "and complexity. Use Unicode math symbols in plain text."
+        ),
+    },
+    "logic": {
+        "name": "Formal Logic Encoding",
+        "system": (
+            "You are a Formal Logic Encoder. Produce PREMISES, INFERENCE RULES, DERIVED LEMMAS, "
+            "PROOF SKETCH, CONCLUSION, and COMPLEXITY/DECIDABILITY in first-order logic style."
+        ),
+    },
+    "fsm": {
+        "name": "Finite State Machine Encoding",
+        "system": (
+            "You are a Finite Automata Encoder. Output a formal automaton with class identification, "
+            "5-tuple M=(Q,Sigma,delta,q0,F), transition function, language, and computational class."
+        ),
+    },
+    "vector": {
+        "name": "Neural Vector Encoding",
+        "system": (
+            "You are a Neural Vector Pipeline Encoder. Produce tokenization, embedding/tensor form, "
+            "intent decomposition, loss function, optimization, and latent space notes in concise formal style."
+        ),
+    },
+}
+
+_ENCODER_DOMAIN_HINTS: dict[str, str] = {
+    "auto": "Auto-detect domain from the user text and apply domain-appropriate notation.",
+    "cs": "Domain context: Computer Science.",
+    "ml": "Domain context: Machine Learning.",
+    "math": "Domain context: Mathematics.",
+    "logic": "Domain context: Formal Logic.",
+    "nlp": "Domain context: NLP / Linguistics.",
+    "law": "Domain context: Legal / Regulatory.",
+    "bio": "Domain context: Biology / Genomics.",
+    "finance": "Domain context: Quantitative Finance.",
+}
 
 
 def _json_response(payload: dict[str, Any], status: int = 200):
@@ -100,6 +156,72 @@ def _clamp_retries(value: Any) -> int:
     except (TypeError, ValueError):
         retries = 3
     return max(1, min(retries, 3))
+
+
+def _resolve_model(provider: str, model_override: str | None = None) -> str:
+    if model_override:
+        cleaned = model_override.strip()
+        if cleaned:
+            return cleaned
+    return _OPENAI_DEFAULT_MODEL if provider == "openai" else _DEFAULT_MODEL
+
+
+def _provider_ready(provider: str) -> tuple[bool, str | None]:
+    if provider == "groq":
+        if _groq_client is None:
+            return False, _groq_init_error or "Groq provider is unavailable."
+        return True, None
+    if provider == "openai":
+        if _openai_client is None:
+            return False, _openai_init_error or "OpenAI provider is unavailable."
+        return True, None
+    return False, f"Unsupported provider: {provider}"
+
+
+def _provider_chat(
+    provider: str,
+    model: str,
+    system_prompt: str,
+    user_prompt: str,
+    temperature: float,
+    max_tokens: int,
+) -> tuple[str, str | None]:
+    messages: list[dict[str, str]] = [{"role": "system", "content": system_prompt}]
+    messages.append({"role": "user", "content": user_prompt})
+
+    if provider == "groq":
+        if _groq_client is None:
+            return "", _groq_init_error or "Groq provider is unavailable."
+        try:
+            completion = _groq_client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+        except Exception as exc:  # noqa: BLE001
+            app.logger.warning("Groq encode failure: %s", exc)
+            return "", "Groq provider request failed."
+        reply = completion.choices[0].message.content or ""
+        return reply.strip(), None
+
+    if provider == "openai":
+        if _openai_client is None:
+            return "", _openai_init_error or "OpenAI provider is unavailable."
+        try:
+            completion = _openai_client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+        except Exception as exc:  # noqa: BLE001
+            app.logger.warning("OpenAI encode failure: %s", exc)
+            return "", "OpenAI provider request failed."
+        reply = completion.choices[0].message.content or ""
+        return reply.strip(), None
+
+    return "", f"Unsupported provider: {provider}"
 
 
 def _provider_generate(
@@ -166,11 +288,9 @@ def _provider_generate(
 def require_api_secret():
     if request.path == "/health" or not request.path.startswith("/api/"):
         return None
+    # Bridge auth is optional. If no secret is configured, allow requests.
     if not _BRIDGE_SECRET:
-        return _json_response(
-            {"error": "Server misconfiguration: BRIDGE_SECRET_916 is not set."},
-            status=503,
-        )
+        return None
     provided = _extract_secret()
     if not provided or not hmac.compare_digest(provided, _BRIDGE_SECRET):
         return _json_response({"error": "Unauthorized"}, status=401)
@@ -313,6 +433,110 @@ def bridge():
     return _json_response(payload, status_code)
 
 
+@app.route("/api/connectors", methods=["GET"])
+def connectors():
+    groq_ready, groq_error = _provider_ready("groq")
+    openai_ready, openai_error = _provider_ready("openai")
+    return _json_response(
+        {
+            "providers": {
+                "groq": {
+                    "ready": groq_ready,
+                    "default_model": _DEFAULT_MODEL,
+                    "error": groq_error,
+                },
+                "openai": {
+                    "ready": openai_ready,
+                    "default_model": _OPENAI_DEFAULT_MODEL,
+                    "error": openai_error,
+                },
+            },
+            "modes": sorted(_ENCODER_MODES.keys()),
+            "domains": sorted(_ENCODER_DOMAIN_HINTS.keys()),
+        },
+        200,
+    )
+
+
+@app.route("/api/encode", methods=["POST"])
+def encode():
+    data = request.get_json(silent=True) or {}
+    text = str(data.get("text", "")).strip()
+    if not text:
+        return _json_response({"error": "Request body must include non-empty 'text'."}, 400)
+
+    mode = str(data.get("mode", "npe")).strip().lower()
+    if mode not in _ENCODER_MODES:
+        return _json_response({"error": f"Invalid mode: {mode}"}, 400)
+
+    domain = str(data.get("domain", "auto")).strip().lower()
+    if domain not in _ENCODER_DOMAIN_HINTS:
+        return _json_response({"error": f"Invalid domain: {domain}"}, 400)
+
+    provider = str(data.get("provider", "groq")).strip().lower()
+    if provider not in {"groq", "openai"}:
+        return _json_response({"error": f"Unsupported provider: {provider}"}, 400)
+
+    model = _resolve_model(provider, str(data.get("model", "")).strip() or None)
+
+    try:
+        temperature = float(data.get("temperature", 0.3))
+    except (TypeError, ValueError):
+        temperature = 0.3
+    temperature = max(0.0, min(temperature, 1.0))
+
+    try:
+        max_tokens = int(data.get("max_tokens", 1200))
+    except (TypeError, ValueError):
+        max_tokens = 1200
+    max_tokens = max(64, min(max_tokens, 4096))
+
+    ready, ready_error = _provider_ready(provider)
+    if not ready:
+        return _json_response({"error": ready_error or "Provider unavailable."}, 503)
+
+    normalized_meta = normalize_text(text)
+    normalized_text = str(normalized_meta.get("normalized", text))
+    style = str(normalized_meta.get("style", "direct"))
+
+    mode_spec = _ENCODER_MODES[mode]
+    system_prompt = (
+        f"{mode_spec['system']}\n"
+        f"{_ENCODER_DOMAIN_HINTS[domain]}\n"
+        "Return plain text only. Avoid markdown tables."
+    )
+    user_prompt = (
+        f"Input:\n{normalized_text}\n\n"
+        f"Style hint: {style}\n"
+        "If assumptions are needed, state them explicitly at the end."
+    )
+
+    output, provider_error = _provider_chat(
+        provider=provider,
+        model=model,
+        system_prompt=system_prompt,
+        user_prompt=user_prompt,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )
+    if provider_error:
+        return _json_response({"error": provider_error}, 502)
+
+    token_estimate = len(output.split())
+    return _json_response(
+        {
+            "provider": provider,
+            "model": model,
+            "mode": mode,
+            "domain": domain,
+            "normalized_input": normalized_text,
+            "output": output,
+            "token_estimate": token_estimate,
+        },
+        200,
+    )
+
+
 @app.route("/api/translate", methods=["POST"])
 def translate():
     data = request.get_json(silent=True) or {}
@@ -409,14 +633,14 @@ def chat():
 
 @app.route("/health", methods=["GET"])
 def health():
-    ready = bool(_BRIDGE_SECRET)
+    providers_ready = bool(_groq_client is not None or _openai_client is not None)
     return _json_response(
         {
-            "status": "ok" if ready else "degraded",
+            "status": "ok" if providers_ready else "degraded",
             "groq_ready": _groq_client is not None,
             "openai_ready": _openai_client is not None,
             "bridge_secret_protected": bool(_BRIDGE_SECRET),
-            "ready": ready,
+            "ready": providers_ready,
             "mode": "single_turn",
         },
         200,
