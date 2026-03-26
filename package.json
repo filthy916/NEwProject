@@ -5,6 +5,7 @@
   "description": "NPM launcher for the Python Flask backend",
   "scripts": {
     "start": "node scripts/start-server.js",
-    "dev": "node scripts/start-server.js"
+    "dev": "node scripts/start-server.js",
+    "check:secrets": "node scripts/check-secrets.js"
   }
 }
