@@ -38,19 +38,39 @@ def test_translate_requires_secret(server_module):
 
 
 def test_translate_with_secret(server_module):
+    class _MockMessage:
+        content = "Translated analytical query"
+
+    class _MockChoice:
+        message = _MockMessage()
+
+    class _MockCompletion:
+        choices = [_MockChoice()]
+
+    class _MockGroqCompletions:
+        @staticmethod
+        def create(**_kwargs):
+            return _MockCompletion()
+
+    class _MockGroqChat:
+        completions = _MockGroqCompletions()
+
+    class _MockGroqClient:
+        chat = _MockGroqChat()
+
+    server_module._groq_client = _MockGroqClient()
+
     client = server_module.app.test_client()
     response = client.post(
         "/api/translate",
         headers={"X-API-Key": "bridge-test-secret"},
-        json={"message": "Turn on the lights", "format": "ai"},
+        json={"query": "Turn on the lights"},
     )
     payload = response.get_json()
     assert response.status_code == 200
-    assert payload["format"] == "ai"
-    assert "TASK_INTENT: COMMAND" in payload["translated"]
-    assert payload["surface_input"] == "Turn on the lights"
-    assert "substrate_truth" in payload
-    assert "resonance_score" in payload
+    assert payload["original"] == "Turn on the lights"
+    assert payload["translated"] == "Translated analytical query"
+    assert payload["model"] == "llama-3.3-70b-versatile"
 
 
 def test_bridge_requires_secret(server_module):

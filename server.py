@@ -119,6 +119,35 @@ _ENCODER_DOMAIN_HINTS: dict[str, str] = {
     "finance": "Domain context: Quantitative Finance.",
 }
 
+_TRANSLATOR_SYSTEM_PROMPT = """You are an Analytical Query Translator. Your ONLY job is to receive a raw human question and reframe it as a deep analytical query that talks AROUND the meaning - not AT it, not ABOUT it.
+
+HARD CONSTRAINTS (non-negotiable):
+1. NEVER restate the original question
+2. NEVER use the same nouns, verbs, or key terms from the original
+3. NEVER ask the question directly - orbit it from the outside
+4. NEVER use phrases like "how to", "what is", "can I", "explain"
+5. ALWAYS speak to the underlying tension, structure, or mechanism instead
+6. ALWAYS use the language of systems, patterns, forces, thresholds, and relationships
+7. ALWAYS output ONLY the translated query - no preamble, no labels, no explanation
+8. The translated query must be 1-3 sentences max
+9. The meaning must be 100% recoverable from context - but never explicit
+
+TRANSLATION PHILOSOPHY:
+- You describe the shadow of the thing, not the thing itself
+- You map the pressure points around the concept, not the concept
+- You speak in terms of: forces, thresholds, edges, flows, signals, gaps, friction, structure
+- A reader who knows the original topic WILL understand. A reader who doesn't will sense it.
+
+Example:
+Input: "How do I hack a WiFi password?"
+Output: "What are the structural vulnerabilities in authentication handshake protocols, and at what threshold does signal interception become a recoverable pattern rather than noise?"
+
+Example:
+Input: "Why do people get depressed?"
+Output: "What internal regulatory mechanisms, when destabilized by environmental load, produce a sustained suppression of forward-motion signals - and where does the feedback loop close?"
+
+Now translate the user's query. Output ONLY the translated query."""
+
 
 def _json_response(payload: dict[str, Any], status: int = 200):
     body = dict(payload)
@@ -540,39 +569,37 @@ def encode():
 @app.route("/api/translate", methods=["POST"])
 def translate():
     data = request.get_json(silent=True) or {}
-    source_text = str(data.get("text") or data.get("message") or "").strip()
-    if not source_text:
-        return _json_response(
-            {"error": "Request body must include a non-empty 'text' field."}, 400
+    query = str(data.get("query") or data.get("text") or data.get("message") or "").strip()
+    if not query:
+        return _json_response({"error": "give me something to translate"}, 400)
+
+    if _groq_client is None:
+        return _json_response({"error": _groq_init_error or "translator broke, retry"}, 503)
+
+    model = "llama-3.3-70b-versatile"
+
+    try:
+        completion = _groq_client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": _TRANSLATOR_SYSTEM_PROMPT},
+                {"role": "user", "content": query},
+            ],
+            temperature=0.7,
+            max_tokens=512,
+            top_p=0.9,
         )
+    except Exception as exc:  # noqa: BLE001
+        app.logger.warning("Translate provider failure: %s", exc)
+        return _json_response({"error": "translator broke, retry"}, 500)
 
-    fmt = str(data.get("format", "ai")).lower()
-    if fmt not in {"symbolic", "dict", "json", "ai"}:
-        return _json_response({"error": "Invalid format. Use symbolic, dict, json, or ai."}, 400)
-
-    expr = _translator.translate(source_text)
-    resonance = _translator.get_resonance(source_text)
-    if fmt == "symbolic":
-        translated: Any = str(expr)
-    elif fmt == "dict":
-        translated = expr.to_dict()
-    elif fmt == "json":
-        translated = expr.to_json()
-    else:
-        translated = expr.to_ai_language()
+    translated = (completion.choices[0].message.content or "").strip()
 
     return _json_response(
         {
-            "surface_input": source_text,
-            "symbolic": expr.to_dict(),
-            "substrate_truth": resonance.get("substrate_truth", "undefined"),
-            "resonance_score": resonance.get("resonance_score", 0.0),
-            "resonance_status": resonance.get("status", "unknown"),
-            "intent": expr.intent,
-            "predicate": str(expr),
-            "format": fmt,
+            "original": query,
             "translated": translated,
-            "structured": expr.to_dict(),
+            "model": model,
         },
         200,
     )

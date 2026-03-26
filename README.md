@@ -255,17 +255,16 @@ curl -X POST http://localhost:5000/api/chat \
 
 #### `POST /api/translate`
 
-Translate human text and return symbolic + substrate resonance.
+Translate a raw human question into an analytical reframing query.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `text` | string | ✓ | The source input text (alias: `message`) |
-| `format` | string | | `symbolic`, `dict`, `json`, or `ai` (default: `ai`) |
+| `query` | string | ✓ | The source question (aliases: `text`, `message`) |
 
 Response includes:
-- `symbolic` (structured symbolic expression)
-- `substrate_truth` (resonance-layer intent extraction)
-- `resonance_score` (0.0 to 1.0)
+- `original` (the submitted query)
+- `translated` (the analytical reformulation)
+- `model` (`llama-3.3-70b-versatile`)
 
 #### `GET /health`
 

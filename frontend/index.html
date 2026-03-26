@@ -5,205 +5,141 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="1ONE - an ominous dark bridge console with runtime-only auth and a single-turn request flow."
+      content="The Machine - analytical query translator command terminal."
     />
-    <title>1ONE | Bridge Console</title>
+    <title>The Machine | Query Translator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="./styles.css" />
     <script defer src="./app.js"></script>
   </head>
   <body>
-    <div class="bg-layer bg-layer-a" aria-hidden="true"></div>
-    <div class="bg-layer bg-layer-b" aria-hidden="true"></div>
-    <div class="noise" aria-hidden="true"></div>
+    <div class="drift-bg" aria-hidden="true"></div>
+    <div class="noise-layer" aria-hidden="true"></div>
 
-    <header class="topbar">
-      <div class="brand-lockup">
-        <div class="brand-mark" aria-hidden="true">1</div>
-        <div>
-          <p class="eyebrow">1ONE</p>
-          <h1>Bridge console</h1>
-        </div>
-      </div>
-
-      <div class="topbar-actions">
-        <span class="status-pill" id="authStatus">Secret idle</span>
-        <button class="ghost-button" type="button" id="changeSecretButton">
-          Enter secret
-        </button>
-      </div>
-    </header>
-
-    <main class="shell">
-      <section class="hero card">
-        <div class="hero-copy">
-          <p class="eyebrow">Single-turn only</p>
-          <h2>Send one sealed instruction into the dark.</h2>
-          <p class="lede">
-            1ONE is a one-shot bridge for discreet requests. The secret lives
-            only in memory, the payload is posted once to <code>/api/bridge</code>,
-            and the result is surfaced without building a chat trail.
-          </p>
+    <div class="machine-shell">
+      <aside class="left-rail panel" aria-label="Session telemetry and navigation">
+        <div class="rail-top">
+          <div class="machine-mark">M</div>
+          <nav class="icon-nav" aria-label="Machine controls">
+            <button type="button" class="icon-btn" aria-label="Translator">◈</button>
+            <button type="button" class="icon-btn" aria-label="Signals">▣</button>
+            <button type="button" class="icon-btn" aria-label="Diagnostics">◫</button>
+            <button type="button" class="icon-btn" aria-label="Archive">◌</button>
+          </nav>
         </div>
 
-        <div class="hero-metrics" aria-label="Bridge constraints">
-          <div class="metric">
-            <span class="metric-label">Persistence</span>
-            <strong>none</strong>
+        <div class="rail-bottom">
+          <div class="pulse-wrap">
+            <span class="pulse-dot" id="pulseDot"></span>
+            <span class="pulse-label">SESSION LIVE</span>
           </div>
-          <div class="metric">
-            <span class="metric-label">Turns</span>
-            <strong>one</strong>
-          </div>
-          <div class="metric">
-            <span class="metric-label">Endpoint</span>
-            <strong>/api/bridge</strong>
-          </div>
+          <p class="rail-label">UPTIME</p>
+          <p class="session-time" id="sessionTimer">00:00:00</p>
+          <button class="secret-button" type="button" id="changeSecretButton">ARM SECRET</button>
+          <p class="secret-status" id="authStatus">Secret idle</p>
         </div>
-      </section>
+      </aside>
 
-      <section class="grid">
-        <section class="card form-card" aria-labelledby="bridgeFormTitle">
-          <div class="section-head">
-            <div>
-              <p class="eyebrow">Dispatch</p>
-              <h3 id="bridgeFormTitle">Single-turn bridge form</h3>
-            </div>
-            <span class="microcopy">No conversation history is kept.</span>
+      <main class="center-stage panel" aria-label="Translator terminal">
+        <header class="stage-head">
+          <div>
+            <p class="eyebrow">THE MACHINE</p>
+            <h1>Analytical Query Translator</h1>
           </div>
+          <p class="stage-meta" id="resultMeta">Awaiting input vector...</p>
+        </header>
 
-          <form id="bridgeForm" class="bridge-form">
-            <div class="form-row">
-              <label class="field">
-                <span>Direction</span>
-                <select id="direction" name="direction">
-                  <option value="human_to_ai">Human -> AI</option>
-                  <option value="ai_to_human">AI -> Human</option>
-                </select>
-              </label>
-              <label class="field">
-                <span>Provider</span>
-                <select id="provider" name="provider">
-                  <option value="groq">Groq</option>
-                  <option value="openai">OpenAI</option>
-                </select>
-              </label>
-            </div>
+        <section class="readout-zone" aria-live="polite">
+          <p class="readout-label">READOUT</p>
+          <div class="readout" id="readoutOutput">
+            <span class="readout-idle">No translated signal yet.</span>
+          </div>
+        </section>
 
-            <div class="form-row">
-              <label class="field">
-                <span>Retries</span>
-                <input id="max_retries" name="max_retries" type="number" min="1" max="3" value="3" />
-              </label>
-              <label class="field">
-                <span>Format</span>
-                <select id="format" name="format">
-                  <option value="json">JSON</option>
-                  <option value="text">Text</option>
-                </select>
-              </label>
-            </div>
-
-            <label class="field">
-              <span>Instruction</span>
-              <textarea
-                id="text"
-                name="text"
-                rows="8"
-                maxlength="4000"
-                placeholder="State the one request you want 1ONE to send..."
+        <section class="prompt-zone" id="promptZone">
+          <form id="translatorForm" class="prompt-form">
+            <label for="queryInput" class="sr-only">Query input</label>
+            <div class="prompt-row">
+              <span class="prompt-symbol">&gt;</span>
+              <input
+                id="queryInput"
+                name="query"
+                type="text"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="query_input"
+                maxlength="1800"
                 required
-              ></textarea>
-            </label>
-
-            <div class="form-row">
-              <div class="inline-note">
-                <span class="inline-dot"></span>
-                <span>Auth is in memory only. Refreshing clears it.</span>
-              </div>
-              <button class="primary-button" type="submit" id="submitButton">
-                Dispatch
+              />
+              <button type="submit" id="translateButton" class="translate-ghost">
+                <span>TRANSLATE</span>
               </button>
             </div>
+            <div class="accent-line" id="inputAccent"></div>
           </form>
         </section>
+      </main>
 
-        <section class="card result-card" aria-labelledby="resultTitle">
-          <div class="section-head">
-            <div>
-              <p class="eyebrow">Results</p>
-              <h3 id="resultTitle">Bridge output</h3>
-            </div>
-            <span class="microcopy" id="resultMeta">Awaiting first signal.</span>
+      <aside class="right-panel panel" aria-label="Translation diagnostics">
+        <header class="diag-head">
+          <p class="eyebrow">CONTEXT LAYER</p>
+          <h2>Diagnostics</h2>
+        </header>
+
+        <section class="diag-block">
+          <div class="kv-row">
+            <span>MODEL</span>
+            <strong id="metaModel">-</strong>
           </div>
-
-          <div class="result-summary" id="resultSummary">
-            <p class="result-empty">
-              No request has been sent yet. Arm the secret, write one instruction,
-              and dispatch it across the bridge.
-            </p>
-          </div>
-
-          <div class="result-panel">
-            <div class="panel-head">
-              <span>Raw response</span>
-              <button class="ghost-button tiny" type="button" id="copyResultButton" disabled>
-                Copy
-              </button>
-            </div>
-            <pre id="resultOutput" class="result-output" aria-live="polite">{
-  "status": "idle"
-}</pre>
+          <div class="kv-row">
+            <span>TOKENS SHIFTED</span>
+            <strong id="metaShift">0</strong>
           </div>
         </section>
-      </section>
 
-      <section class="card notes-card" aria-labelledby="notesTitle">
-        <div class="section-head">
-          <div>
-            <p class="eyebrow">Safety notes</p>
-            <h3 id="notesTitle">Disclaimers and footnotes</h3>
+        <section class="diag-block">
+          <p class="block-title">CONFIDENCE VECTORS</p>
+          <div class="bar-row">
+            <span>Recovery</span>
+            <div class="bar-track"><div class="bar-fill" id="barRecovery"></div></div>
           </div>
-        </div>
+          <div class="bar-row">
+            <span>Abstraction</span>
+            <div class="bar-track"><div class="bar-fill" id="barAbstraction"></div></div>
+          </div>
+          <div class="bar-row">
+            <span>Constraint Fit</span>
+            <div class="bar-track"><div class="bar-fill" id="barConstraint"></div></div>
+          </div>
+        </section>
 
-        <div class="notes-grid">
-          <article>
-            <h4>Disclaimers</h4>
-            <ul class="list">
-              <li>
-                The secret is stored only in a transient JavaScript variable and
-                is not written to localStorage, sessionStorage, or cookies.
-              </li>
-              <li>
-                1ONE sends a single POST request to <code>/api/bridge</code> and
-                does not maintain a multi-turn conversation log.
-              </li>
-              <li>
-                Responses are displayed as received. If the backend returns an
-                error, the UI will surface the status and payload directly.
-              </li>
-            </ul>
-          </article>
+        <section class="diag-block">
+          <p class="block-title">CONSTRAINT TAGS</p>
+          <div class="tag-grid" id="constraintTags">
+            <span class="tag muted">Awaiting trigger...</span>
+          </div>
+        </section>
 
-          <article>
-            <h4>Footnotes</h4>
-            <ol class="list footnotes">
-              <li>
-                In-memory auth means the page forgets the secret on refresh,
-                tab close, or a full reload.
-              </li>
-              <li>
-                The bridge payload is intentionally minimal so the backend can
-                decide how much to accept or ignore.
-              </li>
-              <li>
-                If the endpoint expects a different field contract, the request
-                body can be adjusted without changing the rest of the UI.
-              </li>
-            </ol>
-          </article>
-        </div>
-      </section>
-    </main>
+        <section class="diag-block">
+          <p class="block-title">RAW TO TRANSLATED DIFF</p>
+          <div class="diff-grid">
+            <article>
+              <p class="diff-label">RAW</p>
+              <pre id="diffRaw">-</pre>
+            </article>
+            <article>
+              <p class="diff-label">TRANSLATED</p>
+              <pre id="diffTranslated">-</pre>
+            </article>
+          </div>
+        </section>
+      </aside>
+    </div>
 
     <div
       class="modal"
@@ -214,47 +150,28 @@
       aria-hidden="true"
     >
       <div class="modal-backdrop" data-close-modal></div>
-      <div class="modal-card card">
-        <div class="section-head">
-          <div>
-            <p class="eyebrow">Authentication</p>
-            <h3 id="authTitle">Enter the in-memory secret</h3>
-          </div>
-          <button
-            class="ghost-button tiny"
-            type="button"
-            data-close-modal
-            aria-label="Close authentication dialog"
-          >
-            Close
-          </button>
+      <div class="modal-card panel">
+        <div class="modal-head">
+          <p class="eyebrow">AUTH LAYER</p>
+          <h3 id="authTitle">Arm session secret</h3>
         </div>
-
         <p class="modal-copy">
-          The secret never leaves the browser except as an authorization header
-          on the bridge request. It is not stored on disk.
+          Secret is held in memory for this tab only and sent as X-Auth-Secret for API calls.
         </p>
-
         <form id="authForm" class="auth-form">
-          <label class="field">
-            <span>Secret</span>
-            <input
-              id="secretInput"
-              name="secret"
-              type="password"
-              autocomplete="off"
-              spellcheck="false"
-              placeholder="Paste the bridge secret here"
-              required
-            />
-          </label>
-
-          <div class="form-row">
-            <div class="inline-note">
-              <span class="inline-dot"></span>
-              <span>Used only for this tab session.</span>
-            </div>
-            <button class="primary-button" type="submit">Arm secret</button>
+          <label class="field" for="secretInput">Secret</label>
+          <input
+            id="secretInput"
+            name="secret"
+            type="password"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="Paste secret"
+            required
+          />
+          <div class="modal-actions">
+            <button class="modal-ghost" type="button" data-close-modal>CLOSE</button>
+            <button class="modal-solid" type="submit">ARM</button>
           </div>
         </form>
       </div>
