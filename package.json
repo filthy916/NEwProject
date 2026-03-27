@@ -1,0 +1,16 @@
+{
+  "name": "flux-2-media-generator",
+  "version": "1.0.0",
+  "description": "Flux 2 powered image and video generation tool",
+  "main": "server/index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
+    "server:dev": "cd server && node index.js",
+    "client:dev": "cd client && npm run dev",
+    "build": "cd client && npm run build",
+    "start": "node server/index.js"
+  },
+  "keywords": ["flux-2", "image-generation", "video-generation"],
+  "author": "",
+  "license": "MIT"
+}
